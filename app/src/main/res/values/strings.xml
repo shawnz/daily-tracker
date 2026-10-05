@@ -1,0 +1,249 @@
+<!--
+  Some counts below are marked PluralsCandidate by lint and are correct as they stand: a
+  number governed by a second number ("1 of 5 done"), an attributive noun ("1 day streak"),
+  a value that is always the same, or a count with no noun after it. Each is suppressed
+  where it appears.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">Daily Tracker</string>
+
+    <string name="today_title">Today</string>
+    <string name="today_empty_title">No games yet</string>
+    <string name="today_empty_body">Games you add appear here each day.</string>
+    <string name="today_done_count" tools:ignore="PluralsCandidate">%1$d of %2$d done</string>
+    <string name="today_not_played">Not played yet</string>
+    <string name="today_time_left">%1$s left</string>
+    <string name="today_time_left_soon">Less than a minute left</string>
+
+    <string name="add_game_title">Add a game</string>
+    <string name="add_custom_title">Create your own</string>
+    <string name="add_custom_body">Track any daily game by title and link.</string>
+    <string name="add_catalog_header">Known games</string>
+    <string name="add_catalog_all_added">Every known game is already on your list.</string>
+    <string name="add_archived_header">Archived</string>
+    <string name="add_search_hint">Search games</string>
+    <string name="add_search_clear">Clear search</string>
+    <string name="add_search_no_match">No known games match. Tap “%1$s” above to add it yourself.</string>
+
+    <string name="custom_game_title">New game</string>
+    <string name="custom_game_title_field">Title</string>
+    <string name="custom_game_url_field">Link</string>
+    <string name="custom_game_save">Add game</string>
+    <string name="custom_game_match_tracked">Already on your list as %1$s.</string>
+    <string name="custom_game_match_archived">%1$s is archived. Restoring keeps its history.</string>
+    <string name="custom_game_match_known">%1$s is in the catalog.</string>
+    <string name="custom_game_match_hidden">You\'ve discovered a hidden game, %1$s</string>
+    <string name="custom_game_match_hidden_by">You\'ve discovered a hidden game, %1$s by %2$s</string>
+    <string name="custom_game_restore">Restore %1$s</string>
+    <string name="custom_game_add_known">Add %1$s</string>
+    <string name="custom_game_back_to_today">Back to Today</string>
+    <string name="custom_game_url_invalid">That does not look like a link.</string>
+
+    <string name="detail_play">Play</string>
+    <string name="detail_today">Today</string>
+    <string name="detail_latest">Latest</string>
+    <string name="detail_day_previous">Previous day</string>
+    <string name="detail_day_next">Next day</string>
+    <string name="detail_pick_day">Pick a day</string>
+    <string name="detail_month_previous">Previous month</string>
+    <string name="detail_month_next">Next month</string>
+    <string name="detail_nothing_recorded">Nothing recorded.</string>
+    <string name="detail_record_hint">Paste your result (optional)</string>
+    <string name="detail_mark_done">Mark done</string>
+    <string name="detail_save">Save</string>
+    <string name="detail_clear">Clear</string>
+    <string name="detail_streak">Day streak</string>
+    <string name="detail_completion" tools:ignore="PluralsCandidate">Last %1$d days</string>
+    <string name="detail_plays">Plays</string>
+    <string name="detail_reminders_on">Included in reminders</string>
+    <string name="detail_reminders_off">Muted in reminders</string>
+    <string name="detail_archive">Archive</string>
+    <string name="detail_delete_action">Delete game…</string>
+    <string name="detail_delete">Delete game and history</string>
+    <string name="detail_delete_confirm">Delete %1$s and all of its recorded results? This cannot be undone.</string>
+    <string name="detail_no_parser">Results for this game are saved exactly as you paste them.</string>
+
+    <string name="stats_title">Stats</string>
+    <string name="stats_overall_header">Across all games</string>
+    <string name="stats_completion">Completion</string>
+    <string name="stats_recorded">Recorded plays</string>
+    <string name="stats_streak">Current streak</string>
+    <string name="stats_per_game_header">By game</string>
+    <plurals name="stats_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="stats_plays">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
+
+    <string name="wordle_not_solved">Did not solve</string>
+    <string name="wordle_average">Average %1$s guesses</string>
+    <string name="wordle_solve_rate">Solved %1$d%% of the time</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_reminders">Daily reminder</string>
+    <string name="settings_reminders_body">Lists the games you haven\'t played yet.</string>
+    <string name="settings_reminder_time">Reminder time</string>
+    <string name="settings_notification_permission">Notifications are turned off for this app. Tap to turn them on.</string>
+
+    <string name="share_save_result">Save result</string>
+    <string name="share_pick_game">Pick a game</string>
+    <string name="share_confirm_game">Game</string>
+    <string name="share_confirm_day">Day</string>
+    <string name="share_confirm_replaces">This day already has a result. Saving will replace it.</string>
+    <string name="share_confirm_save">Save</string>
+
+    <string name="result_done">Done</string>
+    <string name="result_not_solved">Did not solve</string>
+
+    <string name="share_saved_to">Saved to %1$s</string>
+    <string name="share_nothing_to_save">Nothing to save</string>
+    <string name="share_no_games">Add a game first</string>
+
+    <string name="reminder_channel_name">Daily reminders</string>
+    <string name="reminder_channel_description">Reminds you about games you haven\'t played yet.</string>
+
+    <string name="action_back">Back</string>
+    <string name="action_add">Add</string>
+    <string name="action_stats">Stats</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_share">Share</string>
+    <string name="action_details">Details</string>
+    <string name="action_more">More</string>
+
+    <plurals name="reminder_title">
+        <item quantity="one">1 game still unplayed</item>
+        <item quantity="other">%1$d games still unplayed</item>
+    </plurals>
+
+    <plurals name="connections_groups">
+        <item quantity="one">%1$d group</item>
+        <item quantity="other">%1$d groups</item>
+    </plurals>
+    <string name="connections_solve_rate">Solved %1$d%% of boards</string>
+    <string name="connections_perfect" tools:ignore="PluralsCandidate">%1$d with no mistakes</string>
+    <plurals name="connections_mistakes">
+        <item quantity="one">%1$d mistake</item>
+        <item quantity="other">%1$d mistakes</item>
+    </plurals>
+    <!-- Chosen by the hint count, which is the only part that changes form. -->
+    <plurals name="strands_found">
+        <item quantity="one">%1$d found, %2$d hint</item>
+        <item quantity="other">%1$d found, %2$d hints</item>
+    </plurals>
+    <string name="strands_themed">Themed board</string>
+    <string name="strands_no_hints">%1$d%% solved with no hints</string>
+    <string name="strands_average_hints">%1$s hints a board</string>
+    <plurals name="strands_hints">
+        <item quantity="zero">No hints</item>
+        <item quantity="one">%1$d hint</item>
+        <item quantity="other">%1$d hints</item>
+    </plurals>
+    <plurals name="krillion_misses">
+        <item quantity="one">%1$d missed</item>
+        <item quantity="other">%1$d missed</item>
+    </plurals>
+    <string name="krillion_deepest">Deepest dive %1$d</string>
+    <string name="krillion_average">Average %1$d</string>
+    <string name="catfishing_best">Best %1$s found</string>
+    <string name="catfishing_average">Average %1$s found</string>
+    <string name="foodguessr_total">%1$s points</string>
+    <string name="foodguessr_best">Best %1$s</string>
+    <string name="foodguessr_average">Average %1$s</string>
+    <string name="bandle_bonus">Bonus %1$d/%2$d</string>
+    <string name="bandle_average">Named on guess %1$s</string>
+    <string name="bandle_named">Named %1$d%% of songs</string>
+    <!-- Both counts change form, so each is its own resource and the renderer joins them. -->
+    <plurals name="cluesbysam_mistakes">
+        <item quantity="one">%1$d mistake</item>
+        <item quantity="other">%1$d mistakes</item>
+    </plurals>
+    <plurals name="cluesbysam_hints">
+        <item quantity="one">%1$d hint</item>
+        <item quantity="other">%1$d hints</item>
+    </plurals>
+    <string name="cluesbysam_best">Best time %1$s</string>
+    <string name="cluesbysam_clean">%1$d%% with no help</string>
+    <plurals name="fourbythree_points">
+        <item quantity="one">%1$d point</item>
+        <item quantity="other">%1$d points</item>
+    </plurals>
+    <string name="fourbythree_out_of_guesses">Out of guesses</string>
+    <string name="fourbythree_wrong_hub">Called the wrong hub</string>
+    <string name="fourbythree_called_it">CALLED IT</string>
+    <string name="fourbythree_rule_breaker">RULE BREAKER</string>
+    <plurals name="fourbythree_best">
+        <item quantity="one">Best %1$d point</item>
+        <item quantity="other">Best %1$d points</item>
+    </plurals>
+    <string name="fourbythree_solved">Solved %1$d%% of boards</string>
+    <plurals name="fourbythree_mistakes">
+        <item quantity="zero">No mistakes</item>
+        <item quantity="one">%1$d mistake</item>
+        <item quantity="other">%1$d mistakes</item>
+    </plurals>
+    <string name="smush_points">%1$d pts</string>
+    <string name="smush_pangram">PANGRAM</string>
+    <string name="smush_pangram_first">PANGRAM FIRST</string>
+    <string name="smush_best">Best %1$d pts</string>
+    <string name="smush_pangram_rate">Pangram %1$d%% of the time</string>
+    <string name="foursix_moves" tools:ignore="PluralsCandidate">%1$d/%2$d moves</string>
+    <string name="foursix_points">%1$d pts</string>
+    <string name="foursix_streak" tools:ignore="PluralsCandidate">%1$d day streak</string>
+    <string name="foursix_best">Best %1$d pts</string>
+    <string name="foursix_perfect" tools:ignore="PluralsCandidate">%1$d cleared in the fewest moves</string>
+    <string name="raddle_percent">%1$d%%</string>
+    <!-- Chosen by the rung count, which is the only part that changes form. -->
+    <plurals name="raddle_rungs">
+        <item quantity="one">%1$d rung, %2$d with help</item>
+        <item quantity="other">%1$d rungs, %2$d with help</item>
+    </plurals>
+    <string name="raddle_full">%1$d%% finished in full</string>
+    <string name="raddle_unaided">%1$d%% with no help</string>
+    <string name="rngdle_points">%1$s EP</string>
+    <string name="rngdle_best">Best %1$s EP</string>
+    <plurals name="rngdle_badges_earned">
+        <item quantity="one">%1$d badge earned</item>
+        <item quantity="other">%1$d badges earned</item>
+    </plurals>
+    <plurals name="rngdle_more_badges">
+        <item quantity="one">and %1$d more</item>
+        <item quantity="other">and %1$d more</item>
+    </plurals>
+    <plurals name="golf_strokes">
+        <item quantity="one">%1$d stroke</item>
+        <item quantity="other">%1$d strokes</item>
+    </plurals>
+    <string name="golf_infuriating">INFURIATING</string>
+    <string name="golf_best">Best round %1$d</string>
+    <string name="golf_average">Average %1$d</string>
+    <plurals name="golf_holes">
+        <item quantity="one">%1$d hole</item>
+        <item quantity="other">%1$d holes</item>
+    </plurals>
+    <string name="parseword_perfect">PERFECT</string>
+    <string name="parseword_learn">Learn mode</string>
+    <string name="parseword_challenge">Challenge mode</string>
+    <string name="parseword_best">Best time %1$s</string>
+    <string name="parseword_perfect_rate">Perfect %1$d%% of the time</string>
+    <plurals name="parseword_assists">
+        <item quantity="zero">No assists</item>
+        <item quantity="one">%1$d assist</item>
+        <item quantity="other">%1$d assists</item>
+    </plurals>
+    <plurals name="parseword_secrets">
+        <item quantity="one">%1$d secret found</item>
+        <item quantity="other">%1$d secrets found</item>
+    </plurals>
+    <string name="linkedin_best">Best time %1$s</string>
+    <string name="linkedin_average">Average %1$s</string>
+    <string name="pinpoint_guesses" tools:ignore="PluralsCandidate">%1$d of %2$d guesses</string>
+    <string name="pinpoint_missed">Not found in %1$d</string>
+    <string name="pinpoint_average">Average %1$s guesses</string>
+    <string name="pinpoint_solve_rate">Found %1$d%% of the time</string>
+</resources>

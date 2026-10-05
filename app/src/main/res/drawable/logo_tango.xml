@@ -1,0 +1,53 @@
+<!--
+  Tango, from static.licdn.com. A LinkedIn trademark, drawn on that game's page to
+  identify it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+  <group>
+    <clip-path android:pathData="M4,0h40a4,4 0 0 1 4,4v40a4,4 0 0 1 -4,4h-40a4,4 0 0 1 -4,-4v-40a4,4 0 0 1 4,-4z" />
+  <group>
+    <clip-path android:pathData="M5.5,1.5h37a4,4 0 0 1 4,4v37a4,4 0 0 1 -4,4h-37a4,4 0 0 1 -4,-4v-37a4,4 0 0 1 4,-4z" />
+  <path
+      android:pathData="M1.5 1.5H24V24H1.5V1.5Z"
+      android:fillColor="#FF7FADED" />
+  </group>
+  </group>
+  <group>
+    <clip-path android:pathData="M4,0h40a4,4 0 0 1 4,4v40a4,4 0 0 1 -4,4h-40a4,4 0 0 1 -4,-4v-40a4,4 0 0 1 4,-4z" />
+  <group>
+    <clip-path android:pathData="M5.5,1.5h37a4,4 0 0 1 4,4v37a4,4 0 0 1 -4,4h-37a4,4 0 0 1 -4,-4v-37a4,4 0 0 1 4,-4z" />
+  <path
+      android:pathData="M24 1.5H46.5V24H24V1.5Z"
+      android:fillColor="#FFF5F5F5" />
+  </group>
+  </group>
+  <group>
+    <clip-path android:pathData="M4,0h40a4,4 0 0 1 4,4v40a4,4 0 0 1 -4,4h-40a4,4 0 0 1 -4,-4v-40a4,4 0 0 1 4,-4z" />
+  <group>
+    <clip-path android:pathData="M5.5,1.5h37a4,4 0 0 1 4,4v37a4,4 0 0 1 -4,4h-37a4,4 0 0 1 -4,-4v-37a4,4 0 0 1 4,-4z" />
+  <path
+      android:pathData="M1.5 24H24V46.5H1.5V24Z"
+      android:fillColor="#FFF5F5F5" />
+  </group>
+  </group>
+  <group>
+    <clip-path android:pathData="M4,0h40a4,4 0 0 1 4,4v40a4,4 0 0 1 -4,4h-40a4,4 0 0 1 -4,-4v-40a4,4 0 0 1 4,-4z" />
+  <group>
+    <clip-path android:pathData="M5.5,1.5h37a4,4 0 0 1 4,4v37a4,4 0 0 1 -4,4h-37a4,4 0 0 1 -4,-4v-37a4,4 0 0 1 4,-4z" />
+  <path
+      android:pathData="M24 24H46.5V46.5H24V24Z"
+      android:fillColor="#FFFFBA33" />
+  </group>
+  </group>
+  <group>
+    <clip-path android:pathData="M4,0h40a4,4 0 0 1 4,4v40a4,4 0 0 1 -4,4h-40a4,4 0 0 1 -4,-4v-40a4,4 0 0 1 4,-4z" />
+  <path
+      android:pathData="M5.5,0.75h37a4.75,4.75 0 0 1 4.75,4.75v37a4.75,4.75 0 0 1 -4.75,4.75h-37a4.75,4.75 0 0 1 -4.75,-4.75v-37a4.75,4.75 0 0 1 4.75,-4.75z"
+      android:strokeColor="#E6000000"
+      android:strokeWidth="1.5" />
+  </group>
+</vector>

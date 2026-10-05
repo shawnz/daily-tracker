@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">Daily Tracker monochrome</title>
+
+  <!--
+    Source for the themed-icon layer. Android applies a single colour, so the tiles are
+    distinguished by fill or outline instead, and the colour below is only a placeholder.
+    This layer only contains the tiles. The 512 square is what a launcher mask leaves
+    visible, and the grid covers 58.3% of that square, the same fraction as
+    art/icon-round.svg. An outlined tile is stroked inside its 128 square, so it occupies
+    the same area as a filled one.
+    Kept in step with app/src/main/res/drawable/ic_launcher_monochrome.xml.
+  -->
+
+  <defs>
+    <path id="filled"
+          d="M30,0 L98,0 A30,30 0 0 1 128,30 L128,98 A30,30 0 0 1 98,128 L30,128 A30,30 0 0 1 0,98 L0,30 A30,30 0 0 1 30,0 Z"/>
+    <path id="outlined"
+          d="M30,8 L98,8 A22,22 0 0 1 120,30 L120,98 A22,22 0 0 1 98,120 L30,120 A22,22 0 0 1 8,98 L8,30 A22,22 0 0 1 30,8 Z"/>
+  </defs>
+
+  <g transform="translate(106.6667 106.6667) scale(0.6666667)" fill="#1b1b1d" stroke="#1b1b1d">
+    <!-- Filled: green in the colour icon -->
+    <use href="#filled" x="0"   y="0"   stroke="none"/>
+    <use href="#filled" x="0"   y="160" stroke="none"/>
+    <use href="#filled" x="0"   y="320" stroke="none"/>
+    <use href="#filled" x="160" y="320" stroke="none"/>
+
+    <!-- Outlined: yellow in the colour icon -->
+    <use href="#outlined" x="160" y="160" fill="none" stroke-width="16"/>
+    <use href="#outlined" x="320" y="320" fill="none" stroke-width="16"/>
+  </g>
+</svg>

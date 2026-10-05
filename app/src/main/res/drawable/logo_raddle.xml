@@ -1,0 +1,43 @@
+<!--
+  Raddle, from raddle.quest. A Mystery League trademark, drawn on that game's page to
+  identify it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+  <path
+      android:fillColor="#FF1E88E5"
+      android:pathData="M12,0H52A12,12 0 0 1 64,12V52A12,12 0 0 1 52,64H12A12,12 0 0 1 0,52V12A12,12 0 0 1 12,0Z"/>
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="4"
+      android:strokeLineCap="round"
+      android:pathData="M16,10V54"/>
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="4"
+      android:strokeLineCap="round"
+      android:pathData="M48,10V54"/>
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="4"
+      android:strokeLineCap="round"
+      android:pathData="M16,16H48"/>
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="4"
+      android:strokeLineCap="round"
+      android:pathData="M16,26H48"/>
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="4"
+      android:strokeLineCap="round"
+      android:pathData="M16,36H48"/>
+  <path
+      android:strokeColor="#FFFFFFFF"
+      android:strokeWidth="4"
+      android:strokeLineCap="round"
+      android:pathData="M16,46H48"/>
+</vector>

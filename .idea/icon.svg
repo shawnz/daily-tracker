@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">Daily Tracker</title>
+
+  <!--
+    Project icon. An IDE draws it at around 16 to 20 pixels, where the rim stroke and the
+    corner highlight are thinner than a pixel, so this copy omits them.
+    Kept in step with art/icon.svg.
+  -->
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1b1d"/>
+      <stop offset="1" stop-color="#0e0e0f"/>
+    </linearGradient>
+
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity=".16"/>
+      <stop offset=".52" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset=".62" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity=".17"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="60" fill="url(#bg)"/>
+
+  <g transform="translate(32 32)">
+    <rect width="128" height="128" rx="30" fill="#6aaa64"/>
+    <rect width="128" height="128" rx="30" fill="url(#face)"/>
+  </g>
+
+  <g transform="translate(32 192)">
+    <rect width="128" height="128" rx="30" fill="#6aaa64"/>
+    <rect width="128" height="128" rx="30" fill="url(#face)"/>
+  </g>
+  <g transform="translate(192 192)">
+    <rect width="128" height="128" rx="30" fill="#c9b458"/>
+    <rect width="128" height="128" rx="30" fill="url(#face)"/>
+  </g>
+
+  <g transform="translate(32 352)">
+    <rect width="128" height="128" rx="30" fill="#6aaa64"/>
+    <rect width="128" height="128" rx="30" fill="url(#face)"/>
+  </g>
+  <g transform="translate(192 352)">
+    <rect width="128" height="128" rx="30" fill="#6aaa64"/>
+    <rect width="128" height="128" rx="30" fill="url(#face)"/>
+  </g>
+  <g transform="translate(352 352)">
+    <rect width="128" height="128" rx="30" fill="#c9b458"/>
+    <rect width="128" height="128" rx="30" fill="url(#face)"/>
+  </g>
+</svg>

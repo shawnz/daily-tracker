@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="title">
+  <title id="title">Daily Tracker</title>
+
+  <defs>
+    <!-- Dark grey background, lit from above -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1b1d"/>
+      <stop offset="1" stop-color="#0e0e0f"/>
+    </linearGradient>
+
+    <!-- Tile lighting: lighter at the top, darker at the bottom -->
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity=".16"/>
+      <stop offset=".52" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset=".62" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity=".17"/>
+    </linearGradient>
+
+    <!-- Bright upper edge, shaded lower edge -->
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity=".42"/>
+      <stop offset=".42" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset=".62" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity=".30"/>
+    </linearGradient>
+
+    <!-- Almost flat. The crescent narrows by shape, not by opacity. -->
+    <radialGradient id="gloss" gradientUnits="userSpaceOnUse" cx="23" cy="23" r="26">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity=".30"/>
+      <stop offset=".6"  stop-color="#ffffff" stop-opacity=".29"/>
+      <stop offset="1"   stop-color="#ffffff" stop-opacity=".19"/>
+    </radialGradient>
+
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"  stop-color="#ffffff" stop-opacity=".10"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Tile colour comes from the fill on each <use> -->
+    <g id="tile">
+      <rect width="128" height="128" rx="30"/>
+      <rect width="128" height="128" rx="30" fill="url(#face)"/>
+      <rect x="2" y="2" width="124" height="124" rx="28" fill="none" stroke="url(#rim)" stroke-width="4"/>
+      <path d="M12 40 L12 30 A18 18 0 0 1 30 12 L40 12 A4.5 4.5 0 0 1 40 21
+               A20.71 20.71 0 0 0 21 40 A4.5 4.5 0 0 1 12 40 Z"
+            fill="url(#gloss)"/>
+    </g>
+  </defs>
+
+  <rect width="512" height="512" rx="60" fill="url(#bg)"/>
+  <rect x="1.5" y="1.5" width="509" height="509" rx="58.5" fill="none" stroke="url(#edge)" stroke-width="3"/>
+
+  <!-- 3x3 grid, lower-left triangle. Margin 32, gutters 32, tiles 128.
+       Every edge is a multiple of 32, which is pixel aligned at every density except hdpi. -->
+  <use href="#tile" x="32"  y="32"  fill="#6aaa64"/>
+
+  <use href="#tile" x="32"  y="192" fill="#6aaa64"/>
+  <use href="#tile" x="192" y="192" fill="#c9b458"/>
+
+  <use href="#tile" x="32"  y="352" fill="#6aaa64"/>
+  <use href="#tile" x="192" y="352" fill="#6aaa64"/>
+  <use href="#tile" x="352" y="352" fill="#c9b458"/>
+</svg>

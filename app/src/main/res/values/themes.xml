@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.DailyTracker" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+      Used by the share activities. Neither draws in its own window: one saves a result and
+      shows nothing, the other shows a dialog.
+
+      The system bars are set transparent. The parent theme predates Material and leaves the
+      status bar opaque black. That paints a black bar along the top of the browser for as
+      long as one of these activities is up.
+
+      Dimming is left at its default, which is off for a window like this one. A dialog
+      shown here takes its shade from android:dialogTheme instead, and naming the attribute
+      here would take that shade away.
+    -->
+    <style name="Theme.DailyTracker.Invisible" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
