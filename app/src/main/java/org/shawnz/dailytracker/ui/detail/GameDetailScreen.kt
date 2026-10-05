@@ -92,11 +92,10 @@ internal fun GameDetailScreen(
     // Editing applies to the selected day, so it ends when another day is selected.
     var editing by remember(state.selectedDay) { mutableStateOf(false) }
 
-    // Keyed on the selected day, so the first frame after a day change shows that day's saved
-    // text.
-    var draft by rememberSaveable(state.selectedDay) {
-        mutableStateOf(state.selectedEntry?.rawShareText.orEmpty())
-    }
+    // Keyed on the selected day, so text typed for one day is not offered for another. Set
+    // from the saved text when editing starts, because the share target can save a result
+    // while this screen is open.
+    var draft by rememberSaveable(state.selectedDay) { mutableStateOf("") }
 
     val listState = rememberLazyListState()
     val showTitle by remember {
@@ -206,11 +205,11 @@ internal fun GameDetailScreen(
                     onDraftChange = { draft = it },
                     onStep = { vm.stepDay(it) },
                     onPickDay = { pickingDay = true },
-                    onEdit = { editing = true },
-                    onCancelEdit = {
+                    onEdit = {
                         draft = state.selectedEntry?.rawShareText.orEmpty()
-                        editing = false
+                        editing = true
                     },
+                    onCancelEdit = { editing = false },
                     onSave = {
                         vm.record(draft)
                         editing = false
