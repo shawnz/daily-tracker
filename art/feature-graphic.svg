@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500" role="img" aria-labelledby="title">
+  <title id="title">Daily Tracker</title>
+
+  <defs>
+    <!-- Dark grey background, lit from above -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1b1d"/>
+      <stop offset="1" stop-color="#0e0e0f"/>
+    </linearGradient>
+
+    <!-- Backdrop tiles at 80px, in the proportions of TileBackdrop.kt. The outline is stroked
+         inside the square, so it occupies the same area as a filled tile. -->
+    <rect id="f" width="80" height="80" rx="18.75"/>
+    <rect id="o" x="5" y="5" width="70" height="70" rx="13.75" fill="none" stroke="#ffffff" stroke-width="10"/>
+  </defs>
+
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- Tiles 80, gutters 20. Columns start at -28 and rows end at 528, so 28px is cut off the
+       first column, the last column and the bottom row, as in TileBackdrop.kt. Each cell is
+       filled, outlined or empty, placed by hand at about 4:2:2. The rows fade out towards the
+       top. -->
+  <g fill="#ffffff">
+    <g opacity=".018">
+      <use href="#f" x="-28" y="48"/>
+      <use href="#o" x="172" y="48"/>
+      <use href="#f" x="272" y="48"/>
+      <use href="#f" x="372" y="48"/>
+      <use href="#o" x="572" y="48"/>
+      <use href="#f" x="672" y="48"/>
+      <use href="#f" x="872" y="48"/>
+      <use href="#o" x="972" y="48"/>
+    </g>
+    <g opacity=".04">
+      <use href="#o" x="-28" y="148"/>
+      <use href="#f" x="72"  y="148"/>
+      <use href="#f" x="172" y="148"/>
+      <use href="#f" x="372" y="148"/>
+      <use href="#o" x="572" y="148"/>
+      <use href="#f" x="672" y="148"/>
+      <use href="#o" x="772" y="148"/>
+      <use href="#f" x="972" y="148"/>
+    </g>
+    <g opacity=".07">
+      <use href="#f" x="-28" y="248"/>
+      <use href="#o" x="172" y="248"/>
+      <use href="#f" x="272" y="248"/>
+      <use href="#f" x="472" y="248"/>
+      <use href="#f" x="572" y="248"/>
+      <use href="#f" x="772" y="248"/>
+      <use href="#f" x="872" y="248"/>
+      <use href="#o" x="972" y="248"/>
+    </g>
+    <g opacity=".11">
+      <use href="#f" x="72"  y="348"/>
+      <use href="#f" x="172" y="348"/>
+      <use href="#o" x="272" y="348"/>
+      <use href="#f" x="372" y="348"/>
+      <use href="#o" x="472" y="348"/>
+      <use href="#o" x="672" y="348"/>
+      <use href="#f" x="772" y="348"/>
+      <use href="#f" x="972" y="348"/>
+    </g>
+    <g opacity=".16">
+      <use href="#f" x="-28" y="448"/>
+      <use href="#o" x="72"  y="448"/>
+      <use href="#f" x="272" y="448"/>
+      <use href="#f" x="372" y="448"/>
+      <use href="#o" x="472" y="448"/>
+      <use href="#f" x="572" y="448"/>
+      <use href="#f" x="772" y="448"/>
+      <use href="#o" x="872" y="448"/>
+      <use href="#f" x="972" y="448"/>
+    </g>
+  </g>
+</svg>

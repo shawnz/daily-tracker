@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500" role="img" aria-labelledby="title">
+  <title id="title">Daily Tracker</title>
+
+  <defs>
+    <!-- Dark grey background, lit from above -->
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1b1d"/>
+      <stop offset="1" stop-color="#0e0e0f"/>
+    </linearGradient>
+
+    <!-- Tile lighting: lighter at the top, darker at the bottom -->
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity=".16"/>
+      <stop offset=".52" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset=".62" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity=".17"/>
+    </linearGradient>
+
+    <!-- Bright upper edge, shaded lower edge -->
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity=".42"/>
+      <stop offset=".42" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset=".62" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#000000" stop-opacity=".30"/>
+    </linearGradient>
+
+    <!-- Almost flat. The crescent narrows by shape, not by opacity. -->
+    <radialGradient id="gloss" gradientUnits="userSpaceOnUse" cx="23" cy="23" r="26">
+      <stop offset="0"   stop-color="#ffffff" stop-opacity=".30"/>
+      <stop offset=".6"  stop-color="#ffffff" stop-opacity=".29"/>
+      <stop offset="1"   stop-color="#ffffff" stop-opacity=".19"/>
+    </radialGradient>
+
+    <!-- The tile of icon.svg, at 128 units. Colour comes from the fill on each <use>. -->
+    <g id="tile">
+      <rect width="128" height="128" rx="30"/>
+      <rect width="128" height="128" rx="30" fill="url(#face)"/>
+      <rect x="2" y="2" width="124" height="124" rx="28" fill="none" stroke="url(#rim)" stroke-width="4"/>
+      <path d="M12 40 L12 30 A18 18 0 0 1 30 12 L40 12 A4.5 4.5 0 0 1 40 21
+               A20.71 20.71 0 0 0 21 40 A4.5 4.5 0 0 1 12 40 Z"
+            fill="url(#gloss)"/>
+    </g>
+
+    <!-- Backdrop tiles at 80px, in the proportions of TileBackdrop.kt. The outline is stroked
+         inside the square, so it occupies the same area as a filled tile. -->
+    <rect id="f" width="80" height="80" rx="18.75"/>
+    <rect id="o" x="5" y="5" width="70" height="70" rx="13.75" fill="none" stroke="#ffffff" stroke-width="10"/>
+  </defs>
+
+  <rect width="1024" height="500" fill="url(#bg)"/>
+
+  <!-- One grid for the backdrop and the mark: tiles 80, gutters 20. Columns start at -28, so
+       28px is cut off the first and last. Rows start at 10, which leaves 10px above the top
+       row and below the bottom one. Each backdrop cell is filled, outlined or empty, placed by
+       hand at about 4:2:2. The rows fade out towards the top. -->
+  <g fill="#ffffff">
+    <g opacity=".018">
+      <use href="#f" x="-28" y="10"/>
+      <use href="#o" x="172" y="10"/>
+      <use href="#f" x="272" y="10"/>
+      <use href="#f" x="372" y="10"/>
+      <use href="#o" x="572" y="10"/>
+      <use href="#f" x="672" y="10"/>
+      <use href="#f" x="872" y="10"/>
+      <use href="#o" x="972" y="10"/>
+    </g>
+    <g opacity=".04">
+      <use href="#o" x="-28" y="110"/>
+      <use href="#f" x="72"  y="110"/>
+      <use href="#f" x="172" y="110"/>
+      <use href="#f" x="672" y="110"/>
+      <use href="#o" x="772" y="110"/>
+      <use href="#f" x="972" y="110"/>
+    </g>
+    <g opacity=".07">
+      <use href="#f" x="-28" y="210"/>
+      <use href="#o" x="172" y="210"/>
+      <use href="#f" x="272" y="210"/>
+      <use href="#f" x="772" y="210"/>
+      <use href="#f" x="872" y="210"/>
+      <use href="#o" x="972" y="210"/>
+    </g>
+    <g opacity=".11">
+      <use href="#f" x="72"  y="310"/>
+      <use href="#f" x="172" y="310"/>
+      <use href="#o" x="272" y="310"/>
+      <use href="#o" x="672" y="310"/>
+      <use href="#f" x="772" y="310"/>
+      <use href="#f" x="972" y="310"/>
+    </g>
+    <g opacity=".16">
+      <use href="#f" x="-28" y="410"/>
+      <use href="#o" x="72"  y="410"/>
+      <use href="#f" x="272" y="410"/>
+      <use href="#f" x="372" y="410"/>
+      <use href="#o" x="472" y="410"/>
+      <use href="#f" x="572" y="410"/>
+      <use href="#f" x="772" y="410"/>
+      <use href="#o" x="872" y="410"/>
+      <use href="#f" x="972" y="410"/>
+    </g>
+  </g>
+
+  <!-- The mark, on the three centre columns and the three middle rows of the same grid. -->
+  <g transform="translate(372 110) scale(0.625)">
+    <use href="#tile" x="0"   y="0"   fill="#6aaa64"/>
+
+    <use href="#tile" x="0"   y="160" fill="#6aaa64"/>
+    <use href="#tile" x="160" y="160" fill="#c9b458"/>
+
+    <use href="#tile" x="0"   y="320" fill="#6aaa64"/>
+    <use href="#tile" x="160" y="320" fill="#6aaa64"/>
+    <use href="#tile" x="320" y="320" fill="#c9b458"/>
+  </g>
+</svg>
