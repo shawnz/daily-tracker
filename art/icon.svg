@@ -31,11 +31,6 @@
       <stop offset="1"   stop-color="#ffffff" stop-opacity=".19"/>
     </radialGradient>
 
-    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0"  stop-color="#ffffff" stop-opacity=".10"/>
-      <stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
-
     <!-- Tile colour comes from the fill on each <use> -->
     <g id="tile">
       <rect width="128" height="128" rx="30"/>
@@ -47,17 +42,20 @@
     </g>
   </defs>
 
-  <rect width="512" height="512" rx="60" fill="url(#bg)"/>
-  <rect x="1.5" y="1.5" width="509" height="509" rx="58.5" fill="none" stroke="url(#edge)" stroke-width="3"/>
+  <!-- A full square with no edge highlight. Google Play rounds the corners with its own mask. -->
+  <rect width="512" height="512" fill="url(#bg)"/>
 
-  <!-- 3x3 grid, lower-left triangle. Margin 32, gutters 32, tiles 128.
-       Every edge is a multiple of 32, which is pixel aligned at every density except hdpi. -->
-  <use href="#tile" x="32"  y="32"  fill="#6aaa64"/>
+  <!-- 3x3 grid, lower-left triangle. Gutters 32, tiles 128, drawn at 21/32. At 512px that is
+       tiles 84, gutters 21 and margins 109, so every tile edge is on a whole pixel and the
+       corner tiles stay inside the mask. -->
+  <g transform="translate(109 109) scale(0.65625)">
+    <use href="#tile" x="0"   y="0"   fill="#6aaa64"/>
 
-  <use href="#tile" x="32"  y="192" fill="#6aaa64"/>
-  <use href="#tile" x="192" y="192" fill="#c9b458"/>
+    <use href="#tile" x="0"   y="160" fill="#6aaa64"/>
+    <use href="#tile" x="160" y="160" fill="#c9b458"/>
 
-  <use href="#tile" x="32"  y="352" fill="#6aaa64"/>
-  <use href="#tile" x="192" y="352" fill="#6aaa64"/>
-  <use href="#tile" x="352" y="352" fill="#c9b458"/>
+    <use href="#tile" x="0"   y="320" fill="#6aaa64"/>
+    <use href="#tile" x="160" y="320" fill="#6aaa64"/>
+    <use href="#tile" x="320" y="320" fill="#c9b458"/>
+  </g>
 </svg>
