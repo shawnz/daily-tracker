@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 
 class KindaHardGolfParserTest {
     // Copied from a finished round.
@@ -30,6 +31,23 @@ class KindaHardGolfParserTest {
         val result = KindaHardGolfParser.parse(round)!!
         assertEquals("530", result.puzzleNumber)
         assertEquals(46, result.strokes)
+    }
+
+    // The game served map 552 on 6 October 2026. The number is edited into the round above.
+    @Test
+    fun `a map number is the day that map was published`() {
+        val result = KindaHardGolfParser.parse(round.replace("#530", "#552"))!!
+        assertEquals(LocalDate.of(2026, 10, 6), result.day)
+    }
+
+    @Test
+    fun `a custom map has no day`() {
+        val result =
+            KindaHardGolfParser.parse(
+                "kindahard.golf - Custom Map\n\"Windmill\"\n\n📝 22\n\n0.🏌️ 22\n\n" +
+                    "https://kindahard.golf",
+            )!!
+        assertNull(result.day)
     }
 
     @Test

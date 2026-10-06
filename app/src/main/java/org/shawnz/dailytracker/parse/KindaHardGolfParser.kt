@@ -1,5 +1,7 @@
 package org.shawnz.dailytracker.parse
 
+import java.time.LocalDate
+
 /**
  * A Kinda Hard Golf result.
  *
@@ -16,7 +18,14 @@ data class KindaHardGolfResult(
     val holes: List<Int> = emptyList(),
     val infuriating: Boolean = false,
     val mapName: String? = null,
-) : GameResult
+) : GameResult {
+    /** A custom map has no number, so it has no day. */
+    override val day: LocalDate?
+        get() = dayFromNumber(puzzleNumber, LAUNCH_DAY, firstNumber = 0)
+}
+
+/** The day of map #0. There is one map a day. */
+private val LAUNCH_DAY: LocalDate = LocalDate.of(2025, 4, 2)
 
 /**
  * Reads the Kinda Hard Golf share text.
