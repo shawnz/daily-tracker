@@ -96,7 +96,6 @@
     <string name="share_confirm_save">Save</string>
 
     <string name="result_done">Done</string>
-    <string name="result_not_solved">Did not solve</string>
 
     <string name="share_saved_to">Saved to %1$s</string>
     <string name="share_nothing_to_save">Nothing to save</string>

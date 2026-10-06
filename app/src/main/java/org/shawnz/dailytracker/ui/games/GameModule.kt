@@ -44,7 +44,7 @@ class GameModule<R : GameResult>(
     ) {
         val result = rememberParsed(entry)
         if (result == null) {
-            DefaultEntryRenderer.Summary(entry, modifier)
+            DefaultEntryRenderer.Summary(modifier)
         } else {
             renderer.Summary(result, modifier)
         }
@@ -119,7 +119,7 @@ fun EntrySummary(
     if (module != null) {
         module.Summary(entry, modifier)
     } else {
-        DefaultEntryRenderer.Summary(entry, modifier)
+        DefaultEntryRenderer.Summary(modifier)
     }
 }
 

@@ -125,7 +125,6 @@ class FakeRepository(
                 puzzleDay = day,
                 completedAt = existing?.completedAt ?: Instant.EPOCH,
                 rawShareText = rawText ?: existing?.rawShareText,
-                success = rawText?.let { game.parser?.parse(it)?.success } ?: existing?.success,
             )
         entries.value = entries.value.filterNot { it.id == entry.id } + entry
         return entry.id

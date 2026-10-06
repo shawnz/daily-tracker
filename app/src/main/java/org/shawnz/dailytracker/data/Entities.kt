@@ -39,8 +39,6 @@ data class GameEntity(
  *
  * @property puzzleDay The puzzle's date, following this game's rollover rule.
  * @property rawShareText The text the user saved. Null for a play recorded without one.
- * @property success Null when unknown. Stored because it is read when text that parsed before
- *   no longer parses.
  */
 @Entity(
     tableName = "entries",
@@ -60,5 +58,4 @@ data class EntryEntity(
     val puzzleDay: LocalDate,
     val completedAt: Instant = Instant.now(),
     val rawShareText: String? = null,
-    val success: Boolean? = null,
 )

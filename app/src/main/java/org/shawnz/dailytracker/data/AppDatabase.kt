@@ -2,22 +2,29 @@ package org.shawnz.dailytracker.data
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.AutoMigrationSpec
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [GameEntity::class, EntryEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2, spec = AppDatabase.DropEntrySuccess::class)],
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 
     abstract fun entryDao(): EntryDao
+
+    @DeleteColumn(tableName = "entries", columnName = "success")
+    class DropEntrySuccess : AutoMigrationSpec
 
     companion object {
         @Volatile

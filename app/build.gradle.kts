@@ -44,6 +44,13 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+
+    // The migration tests read the exported schemas as assets. Unit tests use the debug assets.
+    sourceSets {
+        getByName("debug") {
+            assets.directories.add("$projectDir/schemas")
+        }
+    }
 }
 
 // Unit tests run on JUnit 6. The vintage engine runs the few that need Robolectric, which
@@ -84,6 +91,7 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.androidx.room.testing)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testRuntimeOnly(libs.junit.vintage.engine)

@@ -57,8 +57,7 @@ interface Repository {
     /**
      * Records a play.
      *
-     * [rawText] is stored as given, without validation. Only [EntryEntity.success] is derived
-     * from it here.
+     * [rawText] is stored as given, without validation.
      */
     suspend fun record(
         game: Game,
@@ -151,7 +150,6 @@ class DefaultRepository
             rawText: String?,
             day: LocalDate,
         ): Long {
-            val parsed = rawText?.let { game.parser?.parse(it) }
             val existing = entryDao.find(game.id, day)
 
             val entry =
@@ -161,7 +159,6 @@ class DefaultRepository
                     puzzleDay = day,
                     completedAt = existing?.completedAt ?: Instant.now(),
                     rawShareText = rawText ?: existing?.rawShareText,
-                    success = parsed?.success ?: existing?.success,
                 )
 
             return if (existing != null) {

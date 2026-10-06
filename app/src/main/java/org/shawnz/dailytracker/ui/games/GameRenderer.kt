@@ -44,17 +44,9 @@ interface GameRenderer<in R : GameResult> {
 /** Draws the entries of a game with no parser, and entries whose text doesn't parse. */
 object DefaultEntryRenderer {
     @Composable
-    fun Summary(
-        entry: EntryEntity,
-        modifier: Modifier = Modifier,
-    ) {
-        val text =
-            when (entry.success) {
-                false -> stringResource(R.string.result_not_solved)
-                else -> stringResource(R.string.result_done)
-            }
+    fun Summary(modifier: Modifier = Modifier) {
         Text(
-            text,
+            stringResource(R.string.result_done),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = modifier,
@@ -68,7 +60,7 @@ object DefaultEntryRenderer {
     ) {
         val raw = entry.rawShareText?.trim()
         if (raw.isNullOrEmpty()) {
-            Summary(entry, modifier)
+            Summary(modifier)
         } else {
             RawShareText(raw, modifier)
         }
