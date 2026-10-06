@@ -79,7 +79,7 @@ class GameModule<R : GameResult>(
     private fun rememberParsed(entry: EntryEntity): R? = remember(entry.rawShareText) { entry.rawShareText?.let(parser::parse) }
 
     companion object {
-        /** The module for [game], or null for a user-made game or a catalog game with no renderer. */
+        /** The module for [game], or null for a user-made game. */
         fun forGame(game: Game?): GameModule<*>? =
             when (game?.catalogGame ?: return null) {
                 CatalogGame.WORDLE -> GameModule(WordleParser, WordleRenderer)

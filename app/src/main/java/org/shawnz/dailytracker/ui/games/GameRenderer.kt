@@ -24,14 +24,14 @@ interface GameRenderer<in R : GameResult> {
         modifier: Modifier = Modifier,
     )
 
-    /** The full form, for history rows and the detail page. */
+    /** The full form, for the day card on the detail page. */
     @Composable
     fun Detail(
         result: R,
         modifier: Modifier = Modifier,
     )
 
-    /** Drawn on the stats screen. Draws nothing unless overridden. */
+    /** Drawn on the stats screen and the detail page. Draws nothing unless overridden. */
     @Suppress("EmptyMethod")
     @Composable
     fun Aggregate(
