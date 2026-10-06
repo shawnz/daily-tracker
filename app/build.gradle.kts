@@ -22,6 +22,8 @@ android {
 
     buildTypes {
         release {
+            // Allow testing of release builds with the debug key.
+            signingConfig = signingConfigs.getByName("debug")
             optimization {
                 enable = true
             }
