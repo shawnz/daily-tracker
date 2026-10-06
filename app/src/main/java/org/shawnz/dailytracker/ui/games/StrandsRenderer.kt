@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,27 +18,15 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.StrandsResult
 
 object StrandsRenderer : GameRenderer<StrandsResult> {
-    @Composable
-    override fun Summary(
+    override fun summaryText(
         result: StrandsResult,
-        modifier: Modifier,
-    ) {
-        Row(
-            modifier = modifier,
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            val hints = result.hints
-            Text(
-                text =
-                    if (hints == null) {
-                        stringResource(R.string.strands_themed)
-                    } else {
-                        pluralStringResource(R.plurals.strands_hints, hints, hints)
-                    },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        resources: Resources,
+    ): String {
+        val hints = result.hints
+        return if (hints == null) {
+            resources.getString(R.string.strands_themed)
+        } else {
+            resources.getQuantityString(R.plurals.strands_hints, hints, hints)
         }
     }
 

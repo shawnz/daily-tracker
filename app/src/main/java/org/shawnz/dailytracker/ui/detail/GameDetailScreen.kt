@@ -1,8 +1,5 @@
 package org.shawnz.dailytracker.ui.detail
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -59,13 +56,13 @@ import org.shawnz.dailytracker.data.COMPLETION_WINDOW_DAYS
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.GameProgress
-import org.shawnz.dailytracker.share.ReceiveShareActivity
 import org.shawnz.dailytracker.ui.DayPickerDialog
 import org.shawnz.dailytracker.ui.PageMargin
 import org.shawnz.dailytracker.ui.dayLabel
 import org.shawnz.dailytracker.ui.games.EntryAggregate
 import org.shawnz.dailytracker.ui.games.EntryDetail
 import org.shawnz.dailytracker.ui.hostLabel
+import org.shawnz.dailytracker.ui.shareText
 import kotlin.math.roundToInt
 
 /** The details of one game, a button to play it, and its result for a selected day. */
@@ -215,7 +212,7 @@ internal fun GameDetailScreen(
                         editing = false
                     },
                     onShare = {
-                        state.selectedEntry?.rawShareText?.let { shareResult(context, it) }
+                        state.selectedEntry?.rawShareText?.let { shareText(context, it) }
                     },
                     onClear = {
                         vm.clearSelected()
@@ -530,30 +527,6 @@ private fun DayStepper(
             )
         }
     }
-}
-
-/**
- * Sends a saved result to another app.
- *
- * Daily Tracker is itself an `ACTION_SEND` target, so it is excluded from the chooser.
- */
-private fun shareResult(
-    context: Context,
-    text: String,
-) {
-    val send =
-        Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
-        }
-    val chooser =
-        Intent.createChooser(send, null).apply {
-            putExtra(
-                Intent.EXTRA_EXCLUDE_COMPONENTS,
-                arrayOf(ComponentName(context, ReceiveShareActivity::class.java)),
-            )
-        }
-    runCatching { context.startActivity(chooser) }
 }
 
 /** Shows whether reminders are enabled for this game. */

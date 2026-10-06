@@ -50,8 +50,10 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.browser.CustomTabLauncher
 import org.shawnz.dailytracker.ui.PageMargin
 import org.shawnz.dailytracker.ui.games.EntrySummary
+import org.shawnz.dailytracker.ui.shareText
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
@@ -108,6 +110,21 @@ internal fun TodayScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = {
+                            val rows = today?.rows.orEmpty()
+                            shareText(
+                                context,
+                                todayShareText(rows, LocalDate.now(), context.resources),
+                            )
+                        },
+                        enabled = today != null && today.doneCount > 0,
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_share),
+                            stringResource(R.string.action_share),
+                        )
+                    }
                     IconButton(onClick = onStats, enabled = !today?.rows.isNullOrEmpty()) {
                         Icon(
                             painterResource(R.drawable.ic_leaderboard),

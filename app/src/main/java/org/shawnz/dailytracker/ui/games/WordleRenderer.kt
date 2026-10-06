@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +27,14 @@ private val CORRECT = Color(0xFF6AAA64)
 private val PRESENT = Color(0xFFD1B036)
 
 object WordleRenderer : GameRenderer<WordleResult> {
+    override fun summaryText(
+        result: WordleResult,
+        resources: Resources,
+    ): String {
+        val grade = result.guesses?.let { "$it/6" } ?: "X/6"
+        return if (result.hardMode) "$grade HARD" else grade
+    }
+
     @Composable
     override fun Summary(
         result: WordleResult,

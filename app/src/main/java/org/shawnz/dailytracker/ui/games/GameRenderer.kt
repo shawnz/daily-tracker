@@ -1,11 +1,13 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -17,12 +19,25 @@ import org.shawnz.dailytracker.parse.GameResult
 
 /** Draws the results of one game. */
 interface GameRenderer<in R : GameResult> {
-    /** One line, for dense lists. */
+    /** The words of [Summary], for text that is shared with another app. */
+    fun summaryText(
+        result: R,
+        resources: Resources,
+    ): String
+
+    /** One line, for dense lists. Draws [summaryText] unless overridden. */
     @Composable
     fun Summary(
         result: R,
         modifier: Modifier = Modifier,
-    )
+    ) {
+        Text(
+            text = summaryText(result, LocalResources.current),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier,
+        )
+    }
 
     /** The full form, for the day card on the detail page. */
     @Composable

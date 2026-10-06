@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,18 +27,10 @@ private const val ROUND_MAX = 5000
 private val BAR_SHAPE = RoundedCornerShape(2.dp)
 
 object FoodGuessrRenderer : GameRenderer<FoodGuessrResult> {
-    @Composable
-    override fun Summary(
+    override fun summaryText(
         result: FoodGuessrResult,
-        modifier: Modifier,
-    ) {
-        Text(
-            text = result.total?.let { "%,d".format(it) }.orEmpty(),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier,
-        )
-    }
+        resources: Resources,
+    ): String = result.total?.let { "%,d".format(it) }.orEmpty()
 
     /** A bar for each round, filled in proportion to its score. */
     @Composable

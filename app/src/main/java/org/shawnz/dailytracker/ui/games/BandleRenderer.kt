@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.shawnz.dailytracker.R
@@ -19,13 +21,23 @@ private val RIGHT_ARTIST = Color(0xFFD1B036)
 private val WRONG = Color(0xFFCA4754)
 
 object BandleRenderer : GameRenderer<BandleResult> {
+    override fun summaryText(
+        result: BandleResult,
+        resources: Resources,
+    ): String =
+        if (result.instruments == null) {
+            resources.getString(R.string.result_done)
+        } else {
+            "${result.step?.toString() ?: "✗"}/${result.instruments}"
+        }
+
     @Composable
     override fun Summary(
         result: BandleResult,
         modifier: Modifier,
     ) {
         Text(
-            text = grade(result),
+            text = summaryText(result, LocalResources.current),
             style = MaterialTheme.typography.bodySmall,
             color =
                 if (result.success) {
@@ -61,7 +73,7 @@ object BandleRenderer : GameRenderer<BandleResult> {
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = grade(result),
+                    text = summaryText(result, LocalResources.current),
                     style = MaterialTheme.typography.titleMedium,
                     color =
                         if (result.success) {
@@ -123,13 +135,5 @@ object BandleRenderer : GameRenderer<BandleResult> {
             0x1F7E5 -> WRONG
             0x2B1B -> skipped
             else -> unreached
-        }
-
-    @Composable
-    private fun grade(result: BandleResult): String =
-        if (result.instruments == null) {
-            stringResource(R.string.result_done)
-        } else {
-            "${result.step?.toString() ?: "✗"}/${result.instruments}"
         }
 }

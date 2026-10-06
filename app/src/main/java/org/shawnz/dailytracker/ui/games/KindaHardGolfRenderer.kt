@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,20 +16,12 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.KindaHardGolfResult
 
 object KindaHardGolfRenderer : GameRenderer<KindaHardGolfResult> {
-    @Composable
-    override fun Summary(
+    override fun summaryText(
         result: KindaHardGolfResult,
-        modifier: Modifier,
-    ) {
-        Text(
-            text =
-                result.strokes?.let { pluralStringResource(R.plurals.golf_strokes, it, it) }
-                    ?: stringResource(R.string.result_done),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier,
-        )
-    }
+        resources: Resources,
+    ): String =
+        result.strokes?.let { resources.getQuantityString(R.plurals.golf_strokes, it, it) }
+            ?: resources.getString(R.string.result_done)
 
     /** The total, with every hole listed under it in the order printed. */
     @Composable

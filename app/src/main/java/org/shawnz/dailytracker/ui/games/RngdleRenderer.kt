@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,11 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.RngdleResult
 
 object RngdleRenderer : GameRenderer<RngdleResult> {
+    override fun summaryText(
+        result: RngdleResult,
+        resources: Resources,
+    ): String = listOfNotNull(result.rarity, result.standing).joinToString(" ")
+
     @Composable
     override fun Summary(
         result: RngdleResult,

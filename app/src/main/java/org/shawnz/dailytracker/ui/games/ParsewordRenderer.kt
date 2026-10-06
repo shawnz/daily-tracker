@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,15 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.ParsewordResult
 
 object ParsewordRenderer : GameRenderer<ParsewordResult> {
+    override fun summaryText(
+        result: ParsewordResult,
+        resources: Resources,
+    ): String =
+        listOfNotNull(
+            result.seconds?.let(::clock) ?: resources.getString(R.string.result_done),
+            if (result.perfect) resources.getString(R.string.parseword_perfect) else null,
+        ).joinToString(" ")
+
     @Composable
     override fun Summary(
         result: ParsewordResult,

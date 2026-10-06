@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.shawnz.dailytracker.R
@@ -23,6 +25,11 @@ private val PURPLE = Color(0xFFB8A4E6)
 private val PINK = Color(0xFFEC9BB0)
 
 object FourBySixRenderer : GameRenderer<FourBySixResult> {
+    override fun summaryText(
+        result: FourBySixResult,
+        resources: Resources,
+    ): String = listOfNotNull(moves(result, resources), result.medal).joinToString(" ")
+
     @Composable
     override fun Summary(
         result: FourBySixResult,
@@ -33,7 +40,7 @@ object FourBySixRenderer : GameRenderer<FourBySixResult> {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = moves(result), style = MaterialTheme.typography.bodySmall)
+            Text(text = moves(result, LocalResources.current), style = MaterialTheme.typography.bodySmall)
             result.medal?.let {
                 Text(text = it, style = MaterialTheme.typography.bodySmall)
             }
@@ -55,7 +62,7 @@ object FourBySixRenderer : GameRenderer<FourBySixResult> {
             if (result.grid.isNotEmpty()) TileGrid(result.grid) { colourOf(it, empty) }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(moves(result), style = MaterialTheme.typography.titleMedium)
+                    Text(moves(result, LocalResources.current), style = MaterialTheme.typography.titleMedium)
                     result.medal?.let {
                         Text(it, style = MaterialTheme.typography.titleMedium)
                     }
@@ -113,11 +120,13 @@ object FourBySixRenderer : GameRenderer<FourBySixResult> {
             else -> empty
         }
 
-    @Composable
-    private fun moves(result: FourBySixResult): String =
+    private fun moves(
+        result: FourBySixResult,
+        resources: Resources,
+    ): String =
         if (result.moves == null || result.par == null) {
-            stringResource(R.string.result_done)
+            resources.getString(R.string.result_done)
         } else {
-            stringResource(R.string.foursix_moves, result.moves, result.par)
+            resources.getString(R.string.foursix_moves, result.moves, result.par)
         }
 }

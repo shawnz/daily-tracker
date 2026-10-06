@@ -1,11 +1,13 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.shawnz.dailytracker.R
@@ -13,18 +15,10 @@ import org.shawnz.dailytracker.parse.LinkedInResult
 
 /** Draws the timed LinkedIn games. */
 object LinkedInRenderer : GameRenderer<LinkedInResult> {
-    @Composable
-    override fun Summary(
+    override fun summaryText(
         result: LinkedInResult,
-        modifier: Modifier,
-    ) {
-        Text(
-            text = result.seconds?.let(::clock) ?: stringResource(R.string.result_done),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier,
-        )
-    }
+        resources: Resources,
+    ): String = result.seconds?.let(::clock) ?: resources.getString(R.string.result_done)
 
     @Composable
     override fun Detail(
@@ -33,7 +27,7 @@ object LinkedInRenderer : GameRenderer<LinkedInResult> {
     ) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = result.seconds?.let(::clock) ?: stringResource(R.string.result_done),
+                text = summaryText(result, LocalResources.current),
                 style = MaterialTheme.typography.titleMedium,
             )
             result.puzzleNumber?.let {

@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,20 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.SmushResult
 
 object SmushRenderer : GameRenderer<SmushResult> {
+    override fun summaryText(
+        result: SmushResult,
+        resources: Resources,
+    ): String =
+        listOfNotNull(
+            result.points?.let { resources.getString(R.string.smush_points, it) }
+                ?: resources.getString(R.string.result_done),
+            when {
+                !result.pangram -> null
+                result.pangramFirst -> resources.getString(R.string.smush_pangram_first)
+                else -> resources.getString(R.string.smush_pangram)
+            },
+        ).joinToString(" ")
+
     @Composable
     override fun Summary(
         result: SmushResult,

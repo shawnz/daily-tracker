@@ -1,8 +1,10 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.catalog.CatalogGame
@@ -37,6 +39,12 @@ class GameModule<R : GameResult>(
     private val parser: ResultParser<R>,
     private val renderer: GameRenderer<R>,
 ) {
+    /** Null when the entry has no text, or its text doesn't parse. */
+    fun summaryText(
+        entry: EntryEntity,
+        resources: Resources,
+    ): String? = entry.rawShareText?.let(parser::parse)?.let { renderer.summaryText(it, resources) }
+
     @Composable
     fun Summary(
         entry: EntryEntity,
@@ -108,6 +116,23 @@ class GameModule<R : GameResult>(
             }
     }
 }
+
+/**
+ * The words of [EntrySummary], for text that is shared with another app.
+ *
+ * "Done" is returned for a game with no parser, for an entry that doesn't parse, and for a
+ * result with nothing in its summary.
+ */
+fun entrySummaryText(
+    game: Game,
+    entry: EntryEntity,
+    resources: Resources,
+): String =
+    GameModule
+        .forGame(game)
+        ?.summaryText(entry, resources)
+        .orEmpty()
+        .ifBlank { resources.getString(R.string.result_done) }
 
 @Composable
 fun EntrySummary(

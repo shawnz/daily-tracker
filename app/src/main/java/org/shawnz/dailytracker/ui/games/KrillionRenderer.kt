@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,11 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.KrillionResult
 
 object KrillionRenderer : GameRenderer<KrillionResult> {
+    override fun summaryText(
+        result: KrillionResult,
+        resources: Resources,
+    ): String = listOfNotNull(result.score?.toString(), result.band).joinToString(" ")
+
     @Composable
     override fun Summary(
         result: KrillionResult,

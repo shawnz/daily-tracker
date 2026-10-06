@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -15,13 +17,35 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.FourByThreeResult
 
 object FourByThreeRenderer : GameRenderer<FourByThreeResult> {
+    override fun summaryText(
+        result: FourByThreeResult,
+        resources: Resources,
+    ): String =
+        when {
+            result.calledWrongHub -> {
+                resources.getString(R.string.fourbythree_wrong_hub)
+            }
+
+            result.points == null -> {
+                resources.getString(R.string.fourbythree_out_of_guesses)
+            }
+
+            else -> {
+                resources.getQuantityString(
+                    R.plurals.fourbythree_points,
+                    result.points,
+                    result.points,
+                )
+            }
+        }
+
     @Composable
     override fun Summary(
         result: FourByThreeResult,
         modifier: Modifier,
     ) {
         Text(
-            text = headline(result),
+            text = summaryText(result, LocalResources.current),
             style = MaterialTheme.typography.bodySmall,
             color =
                 if (result.success) {
@@ -52,7 +76,7 @@ object FourByThreeRenderer : GameRenderer<FourByThreeResult> {
             if (result.grid.isNotEmpty()) EmojiText(result.grid.joinToString("\n"))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = headline(result),
+                    text = summaryText(result, LocalResources.current),
                     style = MaterialTheme.typography.titleMedium,
                     color =
                         if (result.success) {
@@ -111,24 +135,4 @@ object FourByThreeRenderer : GameRenderer<FourByThreeResult> {
             modifier = modifier,
         )
     }
-
-    @Composable
-    private fun headline(result: FourByThreeResult): String =
-        when {
-            result.calledWrongHub -> {
-                stringResource(R.string.fourbythree_wrong_hub)
-            }
-
-            result.points == null -> {
-                stringResource(R.string.fourbythree_out_of_guesses)
-            }
-
-            else -> {
-                pluralStringResource(
-                    R.plurals.fourbythree_points,
-                    result.points,
-                    result.points,
-                )
-            }
-        }
 }

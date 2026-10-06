@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -16,15 +18,20 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.RaddleResult
 
 object RaddleRenderer : GameRenderer<RaddleResult> {
+    override fun summaryText(
+        result: RaddleResult,
+        resources: Resources,
+    ): String =
+        result.percentage?.let { resources.getString(R.string.raddle_percent, it) }
+            ?: resources.getString(R.string.result_done)
+
     @Composable
     override fun Summary(
         result: RaddleResult,
         modifier: Modifier,
     ) {
         Text(
-            text =
-                result.percentage?.let { stringResource(R.string.raddle_percent, it) }
-                    ?: stringResource(R.string.result_done),
+            text = summaryText(result, LocalResources.current),
             style = MaterialTheme.typography.bodySmall,
             color =
                 if (result.success == false) {

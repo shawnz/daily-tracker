@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.games
 
+import android.content.res.Resources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,24 +9,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.parse.CatfishingResult
 
 object CatfishingRenderer : GameRenderer<CatfishingResult> {
-    @Composable
-    override fun Summary(
+    override fun summaryText(
         result: CatfishingResult,
-        modifier: Modifier,
-    ) {
-        Text(
-            text = score(result),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier,
-        )
-    }
+        resources: Resources,
+    ): String =
+        if (result.score != null && result.total != null) {
+            "${points(result.score)}/${result.total}"
+        } else {
+            resources.getString(R.string.result_done)
+        }
 
     /** The articles as written, with the score beside them. */
     @Composable
@@ -40,7 +39,7 @@ object CatfishingRenderer : GameRenderer<CatfishingResult> {
         ) {
             if (result.grid.isNotEmpty()) EmojiText(result.grid.joinToString("\n"))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(score(result), style = MaterialTheme.typography.titleMedium)
+                Text(summaryText(result, LocalResources.current), style = MaterialTheme.typography.titleMedium)
                 result.puzzleNumber?.let {
                     Text(
                         "#$it",
@@ -74,14 +73,6 @@ object CatfishingRenderer : GameRenderer<CatfishingResult> {
             )
         }
     }
-
-    @Composable
-    private fun score(result: CatfishingResult): String =
-        if (result.score != null && result.total != null) {
-            "${points(result.score)}/${result.total}"
-        } else {
-            stringResource(R.string.result_done)
-        }
 
     /** A whole score is written without a decimal point, as in the share text. */
     private fun points(score: Double): String = if (score % 1.0 == 0.0) score.toInt().toString() else score.toString()
