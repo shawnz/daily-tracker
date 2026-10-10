@@ -130,6 +130,35 @@ class WordleParserTest {
     }
 
     @Test
+    fun `reads the skill and luck scores from text shared by WordleBot`() {
+        val text =
+            """
+            Wordle 1,939 3/6
+
+            ⬛⬛⬛⬛⬛
+            ⬛⬛⬛🟨🟨
+            🟩🟩🟩🟩🟩
+
+            WordleBot
+            Skill 77/99
+            Luck 55/99
+            """.trimIndent()
+        val result = WordleParser.parse(text)!!
+        assertEquals(77, result.skill)
+        assertEquals(55, result.luck)
+        assertEquals(3, result.guesses)
+        assertEquals(3, result.grid.size)
+        assertEquals(LocalDate.of(2026, 10, 10), result.day)
+    }
+
+    @Test
+    fun `text shared by the game has no WordleBot scores`() {
+        val result = WordleParser.parse("Wordle 1,234 4/6\n\n$VINYL_IN_FOUR")!!
+        assertNull(result.skill)
+        assertNull(result.luck)
+    }
+
+    @Test
     fun `matches only wordle text`() {
         assertTrue(WordleParser.matches("Wordle 1,234 4/6\n\n$VINYL_IN_FOUR"))
         assertFalse(WordleParser.matches("Connections\nPuzzle #412\n🟦🟦🟦🟦\n🟩🟩🟩🟩\n🟨🟨🟨🟨\n🟪🟪🟪🟪"))

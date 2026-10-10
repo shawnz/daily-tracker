@@ -92,8 +92,23 @@ object WordleRenderer : GameRenderer<WordleResult> {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                result.skill?.let { BotScore(stringResource(R.string.wordle_bot_skill, it)) }
+                result.luck?.let { BotScore(stringResource(R.string.wordle_bot_luck, it)) }
             }
         }
+    }
+
+    @Composable
+    private fun BotScore(
+        text: String,
+        modifier: Modifier = Modifier,
+    ) {
+        Text(
+            text,
+            modifier = modifier,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 
     /**

@@ -83,6 +83,8 @@
     <string name="wordle_not_solved">Did not solve</string>
     <string name="wordle_average">Average %1$s guesses</string>
     <string name="wordle_solve_rate">Solved %1$d%% of the time</string>
+    <string name="wordle_bot_skill">Skill %1$d/99</string>
+    <string name="wordle_bot_luck">Luck %1$d/99</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_reminders">Daily reminder</string>
