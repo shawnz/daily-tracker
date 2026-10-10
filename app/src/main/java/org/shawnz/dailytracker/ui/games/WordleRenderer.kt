@@ -122,13 +122,14 @@ object WordleRenderer : GameRenderer<WordleResult> {
         absent: Color,
     ): Color =
         when (codePoint) {
-            0x1F7E9, 0x1F7E6 -> CORRECT
+            // green, and orange in high contrast
+            0x1F7E9, 0x1F7E7 -> CORRECT
 
-            // green, and blue in high contrast
-            0x1F7E8, 0x1F7E7 -> PRESENT
+            // yellow, and blue in high contrast
+            0x1F7E8, 0x1F7E6 -> PRESENT
 
-            // yellow, and orange in high contrast
-            else -> absent // white or black, depending on the player's theme
+            // white or black, depending on the player's theme
+            else -> absent
         }
 
     @Composable
