@@ -130,6 +130,20 @@ class DefaultRepositoryTest {
     }
 
     @Test
+    fun `recording no text over a saved result removes the text`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val game = repo.activeGames().single()
+            repo.record(game, solvedInFour, puzzleDay)
+
+            repo.record(game, null, puzzleDay)
+
+            val saved = repo.observeEntries(game.id).first().single()
+            assertNull(saved.rawShareText)
+        }
+    }
+
+    @Test
     fun `deleting a game takes its entries with it`() {
         runBlocking {
             repo.addFromCatalog(CatalogGame.WORDLE)

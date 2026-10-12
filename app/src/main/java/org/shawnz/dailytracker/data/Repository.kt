@@ -158,7 +158,7 @@ class DefaultRepository
                     gameId = game.id,
                     puzzleDay = day,
                     completedAt = existing?.completedAt ?: Instant.now(),
-                    rawShareText = rawText ?: existing?.rawShareText,
+                    rawShareText = rawText,
                 )
 
             return if (existing != null) {

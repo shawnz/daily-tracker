@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -98,6 +99,22 @@ class GameDetailViewModelTest {
             val saved: EntryEntity = repo.entries.value.single()
             assertEquals(day, saved.puzzleDay)
             assertEquals(wordleText(day), saved.rawShareText)
+        }
+
+    // The day stays played, because only Clear removes the entry.
+    @Test
+    fun `recording blank text over a saved result removes the text`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo)
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+            vm.record(wordleText(day)).join()
+
+            vm.record("").join()
+
+            val saved: EntryEntity = repo.entries.value.single()
+            assertEquals(day, saved.puzzleDay)
+            assertNull(saved.rawShareText)
         }
 
     @Test
