@@ -19,7 +19,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * device. [FIXED_ZONE] changes at a time of day in a named zone.
  *
  * [currentPuzzleDay] returns the device date for both [UNSCHEDULED] and [LOCAL_MIDNIGHT].
- * They differ only in [nextRollover], which returns null for [UNSCHEDULED].
+ * They differ in [nextRollover], which returns null for [UNSCHEDULED], and in
+ * [lastPuzzleDay], which is a day later for [UNSCHEDULED].
  */
 enum class RolloverType { UNSCHEDULED, LOCAL_MIDNIGHT, FIXED_ZONE }
 
@@ -41,6 +42,23 @@ fun currentPuzzleDay(
     // puzzle day. With a minuteOfDay of 0, the modulo makes the shift 0.
     val shiftMinutes = ((1440 - minuteOfDay) % 1440).toLong()
     return now.plusMinutes(shiftMinutes).toLocalDate()
+}
+
+/**
+ * The last puzzle day a result can be recorded for.
+ *
+ * This is equal to [currentPuzzleDay], except where no rollover time is known. In that case
+ * the next puzzle may be published before the device date changes, so this is the day after
+ * [currentPuzzleDay].
+ */
+fun lastPuzzleDay(
+    type: RolloverType,
+    zoneId: String?,
+    minuteOfDay: Int,
+    clock: Clock = Clock.systemDefaultZone(),
+): LocalDate {
+    val current = currentPuzzleDay(type, zoneId, minuteOfDay, clock)
+    return if (type == RolloverType.UNSCHEDULED) current.plusDays(1) else current
 }
 
 /** The deadline for today's puzzle, or null where no rollover time is known. */

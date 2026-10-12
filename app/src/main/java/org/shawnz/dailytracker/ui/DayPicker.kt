@@ -39,11 +39,12 @@ import java.time.temporal.WeekFields
 
 /**
  * Selects a day, one month at a time, with [playedDays] highlighted. Days after [last] are shown
- * but can't be selected.
+ * but can't be selected. [latest] is the day selected by the Latest button.
  */
 @Composable
 fun DayPickerDialog(
     selected: LocalDate,
+    latest: LocalDate,
     last: LocalDate,
     playedDays: Set<LocalDate>,
     onPick: (LocalDate) -> Unit,
@@ -53,8 +54,8 @@ fun DayPickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(
-                onClick = { onPick(last) },
-                enabled = selected != last,
+                onClick = { onPick(latest) },
+                enabled = selected != latest,
             ) { Text(stringResource(R.string.detail_latest)) }
         },
         text = { DayPickerContent(selected, last, playedDays, onPick) },

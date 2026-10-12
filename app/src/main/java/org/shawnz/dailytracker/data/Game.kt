@@ -43,6 +43,8 @@ data class Game(
 
     fun currentPuzzleDay(): LocalDate = currentPuzzleDay(rolloverType, rolloverZoneId, rolloverMinuteOfDay)
 
+    fun lastPuzzleDay(): LocalDate = lastPuzzleDay(rolloverType, rolloverZoneId, rolloverMinuteOfDay)
+
     fun nextRollover(): Instant? = nextRollover(rolloverType, rolloverZoneId, rolloverMinuteOfDay)
 }
 

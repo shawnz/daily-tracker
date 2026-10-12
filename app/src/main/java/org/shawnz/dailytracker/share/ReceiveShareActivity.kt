@@ -40,7 +40,7 @@ class ReceiveShareActivity : ComponentActivity() {
                     game.parser
                         ?.parse(text)
                         ?.day
-                        ?.takeIf { !it.isAfter(game.currentPuzzleDay()) }
+                        ?.takeIf { !it.isAfter(game.lastPuzzleDay()) }
                 }
 
             when {

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.EntryEntity
+import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.testGame
 import org.shawnz.dailytracker.testdoubles.wordleText
@@ -110,6 +111,35 @@ class GameDetailViewModelTest {
             vm.clearSelected().join()
 
             assertTrue(repo.entries.value.isEmpty())
+        }
+
+    @Test
+    fun `the stepper stops at the current puzzle day`() =
+        runTest(dispatcher) {
+            val vm = viewModel(FakeRepository(games = listOf(game)))
+            backgroundScope.launch { vm.state.collect {} }
+            val day = vm.state.first { it.selectedDay != null }.selectedDay
+
+            vm.stepDay(1)
+            runCurrent()
+
+            assertEquals(day, vm.state.value.selectedDay)
+        }
+
+    @Test
+    fun `the stepper of an unscheduled game stops a day after the current puzzle day`() =
+        runTest(dispatcher) {
+            val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
+            val vm = viewModel(FakeRepository(games = listOf(raddle)))
+            backgroundScope.launch { vm.state.collect {} }
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+
+            vm.stepDay(1)
+            runCurrent()
+            vm.stepDay(1)
+            runCurrent()
+
+            assertEquals(day.plusDays(1), vm.state.value.selectedDay)
         }
 
     @Test

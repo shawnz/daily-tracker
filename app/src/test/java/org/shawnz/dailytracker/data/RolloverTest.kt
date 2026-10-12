@@ -82,6 +82,28 @@ class RolloverTest {
     }
 
     @Test
+    fun `the last puzzle day of an unscheduled game is the day after the device date`() {
+        val clock = clockAt("2026-09-07T23:30", newYork)
+        assertEquals(
+            LocalDate.of(2026, 9, 8),
+            lastPuzzleDay(RolloverType.UNSCHEDULED, null, 0, clock),
+        )
+    }
+
+    @Test
+    fun `the last puzzle day of a scheduled game is its current puzzle day`() {
+        val clock = clockAt("2026-09-07T23:30", newYork)
+        assertEquals(
+            LocalDate.of(2026, 9, 7),
+            lastPuzzleDay(RolloverType.LOCAL_MIDNIGHT, null, 0, clock),
+        )
+        assertEquals(
+            LocalDate.of(2026, 9, 8),
+            lastPuzzleDay(RolloverType.FIXED_ZONE, "UTC", 0, clock),
+        )
+    }
+
+    @Test
     fun `an unscheduled day still changes at local midnight`() {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(

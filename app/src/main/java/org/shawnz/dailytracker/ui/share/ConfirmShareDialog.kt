@@ -90,7 +90,7 @@ fun ConfirmShareDialog(
                     if (game != null && day != null) {
                         DayPickerContent(
                             selected = day,
-                            last = game.currentPuzzleDay(),
+                            last = game.lastPuzzleDay(),
                             playedDays = state.playedDays,
                             onPick = {
                                 vm.pickDay(it)

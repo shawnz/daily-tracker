@@ -17,8 +17,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.EntryEntity
+import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.share.ConfirmShareActivity
 import org.shawnz.dailytracker.testdoubles.FakeRepository
+import org.shawnz.dailytracker.testdoubles.raddleText
 import org.shawnz.dailytracker.testdoubles.testGame
 import org.shawnz.dailytracker.testdoubles.wordleText
 
@@ -90,6 +92,40 @@ class ConfirmShareViewModelTest {
             val state = vm.state.first { it.game != null }
 
             assertEquals(today, state.day)
+        }
+
+    @Test
+    fun `a shared result from one day after the current puzzle is kept on that day for an unscheduled game`() =
+        runTest(dispatcher) {
+            val raddle = testGame(id = 3, source = CatalogGame.RADDLE)
+            val tomorrow = raddle.currentPuzzleDay().plusDays(1)
+            val vm =
+                viewModel(
+                    FakeRepository(games = listOf(raddle)),
+                    sharedText = raddleText(tomorrow),
+                    matchedGameId = raddle.id,
+                )
+
+            val state = vm.state.first { it.game != null }
+
+            assertEquals(tomorrow, state.day)
+        }
+
+    @Test
+    fun `a shared result from two days after the current puzzle falls back to the current puzzle day for an unscheduled game`() =
+        runTest(dispatcher) {
+            val raddle = testGame(id = 3, source = CatalogGame.RADDLE)
+            val current = raddle.currentPuzzleDay()
+            val vm =
+                viewModel(
+                    FakeRepository(games = listOf(raddle)),
+                    sharedText = raddleText(current.plusDays(2)),
+                    matchedGameId = raddle.id,
+                )
+
+            val state = vm.state.first { it.game != null }
+
+            assertEquals(current, state.day)
         }
 
     // The day was worked out for the game that was matched, so it isn't kept for another game.

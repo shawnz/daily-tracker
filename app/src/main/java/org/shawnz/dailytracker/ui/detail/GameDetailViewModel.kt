@@ -33,8 +33,7 @@ import java.time.LocalDate
  *   depends on it. Null until the game loads.
  * @property playedDays Every puzzle day with an entry. Highlighted in the day picker.
  * @property entries All of this game's entries, for its aggregate figures.
- * @property currentPuzzleDay This game's current puzzle day, which is also the latest selectable
- *   one.
+ * @property lastPuzzleDay The last selectable day.
  */
 data class DetailState(
     val game: Game? = null,
@@ -44,12 +43,13 @@ data class DetailState(
     val entries: List<EntryEntity> = emptyList(),
     val progress: GameProgress? = null,
     val currentPuzzleDay: LocalDate? = null,
+    val lastPuzzleDay: LocalDate? = null,
     val currentDeviceDay: LocalDate? = null,
 ) {
     val isToday: Boolean get() = selectedDay != null && selectedDay == currentDeviceDay
 
     val canGoForward: Boolean
-        get() = selectedDay != null && currentPuzzleDay != null && selectedDay < currentPuzzleDay
+        get() = selectedDay != null && lastPuzzleDay != null && selectedDay < lastPuzzleDay
 }
 
 @HiltViewModel(assistedFactory = GameDetailViewModel.Factory::class)
@@ -104,7 +104,7 @@ class GameDetailViewModel
         }
 
         /**
-         * Moves by [days], never past the current puzzle day.
+         * Moves by [days], never past the last puzzle day.
          *
          * There is no earliest day, because a game may have been played for years before it was
          * added here.
@@ -176,6 +176,7 @@ private fun detailState(
         entries = entries,
         progress = game?.let { gameProgress(it, entries) },
         currentPuzzleDay = current,
+        lastPuzzleDay = game?.lastPuzzleDay(),
         currentDeviceDay = LocalDate.now(),
     )
 }

@@ -93,12 +93,12 @@ class ConfirmShareViewModel
                     game = game,
                     day =
                         chosen ?: game?.let {
-                            val today = it.currentPuzzleDay()
+                            val last = it.lastPuzzleDay()
                             it.parser
                                 ?.parse(sharedText)
                                 ?.day
-                                ?.takeIf { day -> !day.isAfter(today) }
-                                ?: today
+                                ?.takeIf { day -> !day.isAfter(last) }
+                                ?: it.currentPuzzleDay()
                         },
                     entries = rows,
                 )
