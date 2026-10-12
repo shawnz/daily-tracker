@@ -8,7 +8,8 @@ import org.shawnz.dailytracker.ui.share.ConfirmShareDialog
 import org.shawnz.dailytracker.ui.theme.DailyTrackerTheme
 
 /**
- * Selects the game and/or day for a shared result when the text is ambiguous.
+ * Selects the game and/or day for a shared result when the text is ambiguous, and confirms a
+ * save that would replace a different result.
  *
  * Its window is transparent, so the app the text was shared from stays visible and keeps its
  * position. Runs in the share flow's task, so finishing returns to that app.

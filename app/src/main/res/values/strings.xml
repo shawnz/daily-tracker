@@ -104,6 +104,7 @@
     <string name="result_done">Done</string>
 
     <string name="share_saved_to">Saved to %1$s</string>
+    <string name="share_already_saved_under">Already saved under %1$s</string>
     <string name="share_nothing_to_save">Nothing to save</string>
     <string name="share_no_games">Add a game first</string>
 

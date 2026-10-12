@@ -13,7 +13,8 @@ import org.shawnz.dailytracker.data.Repository
 import javax.inject.Inject
 
 /**
- * Saves a shared result, or opens [ConfirmShareActivity] when the text is ambiguous.
+ * Saves a shared result, or opens [ConfirmShareActivity] when the text is ambiguous or would
+ * replace a different result. Text that is already saved for its game and day is not saved again.
  *
  * Its window is transparent, so the app the text was shared from stays visible and keeps its
  * position.
@@ -42,15 +43,21 @@ class ReceiveShareActivity : ComponentActivity() {
                         ?.day
                         ?.takeIf { !it.isAfter(game.lastPuzzleDay()) }
                 }
+            val existing = if (match != null && day != null) repo.entryFor(match, day) else null
 
             when {
                 games.isEmpty() -> {
                     toast(getString(R.string.share_no_games))
                 }
 
-                match != null && day != null -> {
+                match != null && day != null && existing == null -> {
                     repo.record(match, text, day)
                     toast(getString(R.string.share_saved_to, match.title))
+                }
+
+                // Text pasted on the detail page is stored untrimmed, so trim before comparing.
+                match != null && existing?.rawShareText?.trim() == text -> {
+                    toast(getString(R.string.share_already_saved_under, match.title))
                 }
 
                 // No task flags, so the dialog opens in this activity's task. Closing the dialog
