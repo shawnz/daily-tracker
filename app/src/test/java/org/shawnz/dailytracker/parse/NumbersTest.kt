@@ -24,6 +24,18 @@ class NumbersTest {
         ).forEach { assertEquals(8791, read(it), it) }
     }
 
+    // 8791 as `toLocaleString()` writes it in N'Ko, with the Arabic comma.
+    @Test
+    fun `the arabic comma groups n'ko digits`() {
+        assertEquals(8791, read("߈،߇߉߁"))
+    }
+
+    // 8791 as `toLocaleString()` writes it in Chakma.
+    @Test
+    fun `digits above the basic multilingual plane are read`() {
+        assertEquals(8791, read("𑄾,𑄽𑄿𑄷"))
+    }
+
     @Test
     fun `indian grouping reads as one number`() {
         assertEquals(1234567, read("12,34,567"))
