@@ -91,6 +91,8 @@
     <string name="settings_reminders_body">Lists the games you haven\'t played yet.</string>
     <string name="settings_reminder_time">Reminder time</string>
     <string name="settings_notification_permission">Notifications are turned off for this app. Tap to turn them on.</string>
+    <string name="settings_privacy_policy">Privacy Policy</string>
+    <string name="settings_app_version">%1$s %2$s</string>
 
     <string name="share_save_result">Save result</string>
     <string name="share_pick_game">Pick a game</string>

@@ -32,16 +32,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.shawnz.dailytracker.R
+import org.shawnz.dailytracker.browser.CustomTabLauncher
 import org.shawnz.dailytracker.ui.PageMargin
+
+private const val PRIVACY_POLICY_URL = "https://shawnz.org/daily-tracker/privacy-policy.html"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +63,14 @@ internal fun SettingsScreen(
     val vm: SettingsViewModel = hiltViewModel()
     val reminder by vm.reminder.collectAsStateWithLifecycle()
     val enabled = reminder.enabled
+    val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
+    val versionName =
+        remember {
+            context.packageManager
+                .getPackageInfo(context.packageName, 0)
+                .versionName
+                .orEmpty()
+        }
 
     // Whether notifications are permitted. Requested when reminders are switched on, and checked
     // again on resume because it can be changed in the system settings.
@@ -157,7 +175,37 @@ internal fun SettingsScreen(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+                HorizontalDivider()
             }
+
+            val appVersion =
+                stringResource(
+                    R.string.settings_app_version,
+                    stringResource(R.string.app_name),
+                    versionName,
+                )
+            val privacyPolicy = stringResource(R.string.settings_privacy_policy)
+            val linkStyles =
+                TextLinkStyles(
+                    SpanStyle(
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = TextDecoration.Underline,
+                    ),
+                )
+            Text(
+                buildAnnotatedString {
+                    append(appVersion)
+                    append(" - ")
+                    withLink(
+                        LinkAnnotation.Clickable("privacy-policy", linkStyles) {
+                            CustomTabLauncher.launch(context, PRIVACY_POLICY_URL, toolbarColor)
+                        },
+                    ) { append(privacyPolicy) }
+                },
+                modifier = Modifier.padding(horizontal = PageMargin, vertical = 16.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
