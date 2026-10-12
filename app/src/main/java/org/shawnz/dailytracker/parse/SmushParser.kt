@@ -1,5 +1,7 @@
 package org.shawnz.dailytracker.parse
 
+import java.time.LocalDate
+
 /**
  * A Smush result.
  *
@@ -13,6 +15,7 @@ data class SmushResult(
     val points: Int?,
     val badges: List<String> = emptyList(),
     val grid: List<String> = emptyList(),
+    override val day: LocalDate? = null,
 ) : GameResult {
     /**
      * A perfect game needs the pangram first, a clean plate and no hints, and its share text has
@@ -50,11 +53,16 @@ private val STREAK = Regex("""(\d+)-day streak""", RegexOption.IGNORE_CASE)
  *     🥞⭐🥞
  *     🥞🥞🟨
  *
- * The date is written in the device's own language, so it is not read here. A star marks the
- * hub chunk and a pancake marks one that ran out of lives.
+ * The date is the day the board was released, written in the browser's own language. It is
+ * read in the form of any English locale, which is [MONTH_AND_DAY]. A date in another
+ * language gives no day. The year comes from [monthAndDayValue].
+ *
+ * A star marks the hub chunk and a pancake marks one that ran out of lives.
  */
 object SmushParser : ResultParser<SmushResult> {
     private val HEADER = Regex("""hankgreen\.com/smush""", RegexOption.IGNORE_CASE)
+    private val DATE =
+        Regex("""hankgreen\.com/smush\s*·\s*($MONTH_AND_DAY)\s*$""", RegexOption.MULTILINE)
     private val POINTS = Regex("""(\d+)\s*pts""", RegexOption.IGNORE_CASE)
 
     /** Green, yellow, the pancake of a spent chunk, and the star of the hub. */
@@ -62,7 +70,13 @@ object SmushParser : ResultParser<SmushResult> {
 
     override fun matches(text: String): Boolean = HEADER.containsMatchIn(text)
 
-    override fun parse(text: String): SmushResult? {
+    override fun parse(text: String): SmushResult? = parse(text, LocalDate.now())
+
+    /** Parses [text] as if read on [today]. */
+    fun parse(
+        text: String,
+        today: LocalDate,
+    ): SmushResult? {
         if (!HEADER.containsMatchIn(text)) return null
         val scoreLine = text.lineSequence().firstOrNull { POINTS.containsMatchIn(it) }
         return SmushResult(
@@ -85,6 +99,12 @@ object SmushParser : ResultParser<SmushResult> {
                     .map { it.trim() }
                     .filter { isGridRow(it, TILES) }
                     .toList(),
+            day =
+                DATE
+                    .find(text)
+                    ?.groupValues
+                    ?.get(1)
+                    ?.let { monthAndDayValue(it, today) },
         )
     }
 }

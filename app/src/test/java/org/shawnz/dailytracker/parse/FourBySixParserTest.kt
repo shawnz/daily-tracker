@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 
 class FourBySixParserTest {
     private val shelves =
@@ -58,8 +59,26 @@ class FourBySixParserTest {
     }
 
     @Test
-    fun `the date carries no year, so the day stays unknown`() {
-        assertNull(FourBySixParser.parse(solved)!!.day)
+    fun `the day is the header's date in the year it was read`() {
+        val result = FourBySixParser.parse(solved, today = LocalDate.of(2026, 9, 14))!!
+        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+    }
+
+    // The header as `buildShareText` writes it for Monday's board when the page is still open
+    // on Tuesday: the weekday is the board's and the date is the clock's.
+    @Test
+    fun `a board shared after midnight is filed on the board's weekday`() {
+        val text = solved.replace("Mon Sep 14", "Mon Sep 15")
+        val result = FourBySixParser.parse(text, today = LocalDate.of(2026, 9, 15))!!
+        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+    }
+
+    // The header as `buildShareText` writes it for the board of Thursday 31 December 2026.
+    @Test
+    fun `a date later in the year than today is in the year before`() {
+        val text = solved.replace("Mon Sep 14", "Thu Dec 31")
+        val result = FourBySixParser.parse(text, today = LocalDate.of(2027, 1, 2))!!
+        assertEquals(LocalDate.of(2026, 12, 31), result.day)
     }
 
     // 🛟 spoiled, 💯 perfect, 🥇 within par, 🥈 within two of par, ✅ otherwise.

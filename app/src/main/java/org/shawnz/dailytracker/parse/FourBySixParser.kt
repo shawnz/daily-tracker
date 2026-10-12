@@ -1,5 +1,9 @@
 package org.shawnz.dailytracker.parse
 
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
+
 /**
  * A 4×6 result.
  *
@@ -15,6 +19,7 @@ data class FourBySixResult(
     val points: Int?,
     val streakDays: Int?,
     val grid: List<String> = emptyList(),
+    override val day: LocalDate? = null,
 ) : GameResult {
     /** Share text exists only for a cleared board. */
     override val success: Boolean get() = true
@@ -39,10 +44,18 @@ data class FourBySixResult(
  *     21/22 moves 🥇 · 259 pts · 🔥4
  *     hankgreen.com/4x6
  *
- * The date has no year, so it is not read here. The streak is shown from two days up.
+ * The weekday is the board's, set when the page loads. The month and the day of the month are
+ * the clock's when the text is built, so they are later than the board's day when the page was
+ * open past midnight. The day is the header's date, moved back to the header's weekday. The
+ * year comes from [monthAndDayValue].
+ *
+ * The streak is shown from two days up.
  */
 object FourBySixParser : ResultParser<FourBySixResult> {
     private val HEADER = Regex("""4\s*[×x]\s*6\s*·""", RegexOption.IGNORE_CASE)
+    private val DATE =
+        Regex("""4\s*[×x]\s*6\s*·\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+($MONTH_AND_DAY)\b""")
+    private val WEEKDAYS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     private val MOVES = Regex("""(\d+)/(\d+)\s+moves\s*(\S+)?""", RegexOption.IGNORE_CASE)
     private val POINTS = Regex("""(\d+)\s*pts""", RegexOption.IGNORE_CASE)
     private val STREAK = Regex("""🔥\s*(\d+)""")
@@ -52,7 +65,13 @@ object FourBySixParser : ResultParser<FourBySixResult> {
 
     override fun matches(text: String): Boolean = HEADER.containsMatchIn(text)
 
-    override fun parse(text: String): FourBySixResult? {
+    override fun parse(text: String): FourBySixResult? = parse(text, LocalDate.now())
+
+    /** Parses [text] as if read on [today]. */
+    fun parse(
+        text: String,
+        today: LocalDate,
+    ): FourBySixResult? {
         if (!HEADER.containsMatchIn(text)) return null
         val moves = MOVES.find(text)
         return FourBySixResult(
@@ -77,6 +96,15 @@ object FourBySixParser : ResultParser<FourBySixResult> {
                     .map { it.trim() }
                     .filter { isGridRow(it, TILES) }
                     .toList(),
+            day =
+                DATE.find(text)?.destructured?.let { (weekday, monthAndDay) ->
+                    monthAndDayValue(monthAndDay, today)
+                        ?.with(
+                            TemporalAdjusters.previousOrSame(
+                                DayOfWeek.of(WEEKDAYS.indexOf(weekday) + 1),
+                            ),
+                        )
+                },
         )
     }
 }
