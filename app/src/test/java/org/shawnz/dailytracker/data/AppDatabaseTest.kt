@@ -13,7 +13,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.LocalDate
 
@@ -23,7 +22,6 @@ import java.time.LocalDate
  * that allows one entry per game per day.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
 class AppDatabaseTest {
     private lateinit var db: AppDatabase
 

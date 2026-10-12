@@ -1,63 +1,70 @@
 package org.shawnz.dailytracker.data
 
-import android.content.Context
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import org.shawnz.dailytracker.work.Reminders
+import android.util.Log
+import androidx.datastore.core.DataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import java.io.IOException
+import java.time.LocalTime
 import javax.inject.Inject
-import javax.inject.Singleton
 
 /** The daily reminder, as the user set it. */
 data class ReminderSettings(
-    val enabled: Boolean,
-    val hour: Int,
-    val minute: Int,
+    val enabled: Boolean = true,
+    val time: LocalTime = LocalTime.of(20, 0),
 )
 
 interface SettingsRepository {
-    val reminder: StateFlow<ReminderSettings>
+    val reminder: Flow<ReminderSettings>
 
-    fun setEnabled(enabled: Boolean)
+    suspend fun setEnabled(enabled: Boolean)
 
-    fun setTime(
-        hour: Int,
-        minute: Int,
-    )
+    suspend fun setTime(time: LocalTime)
 }
 
+private const val TAG = "SettingsRepository"
+
 /**
- * Backed by [Prefs], which are read once and then kept in a flow. Changing a setting also
- * reschedules the reminder.
+ * Reads and writes the settings in [store].
+ *
+ * When [store] cannot be read, the settings have their defaults. When it cannot be written,
+ * the change is lost.
  */
-@Singleton
 class DefaultSettingsRepository
     @Inject
     constructor(
-        private val prefs: Prefs,
-        @ApplicationContext private val context: Context,
+        private val store: DataStore<StoredSettings>,
     ) : SettingsRepository {
-        private val state =
-            MutableStateFlow(
-                ReminderSettings(prefs.remindersEnabled, prefs.reminderHour, prefs.reminderMinute),
-            )
+        override val reminder: Flow<ReminderSettings> =
+            store.data
+                .catch { exception ->
+                    if (exception is IOException) {
+                        Log.e(TAG, "Failed to read the settings", exception)
+                        emit(StoredSettings.getDefaultInstance())
+                    } else {
+                        throw exception
+                    }
+                }.map { it.toReminderSettings() }
 
-        override val reminder: StateFlow<ReminderSettings> = state.asStateFlow()
+        override suspend fun setEnabled(enabled: Boolean) = update { remindersEnabled = enabled }
 
-        override fun setEnabled(enabled: Boolean) {
-            prefs.remindersEnabled = enabled
-            state.value = state.value.copy(enabled = enabled)
-            Reminders.reschedule(context, state.value)
-        }
+        override suspend fun setTime(time: LocalTime) = update { reminderTime = time.toSecondOfDay() }
 
-        override fun setTime(
-            hour: Int,
-            minute: Int,
-        ) {
-            prefs.reminderHour = hour
-            prefs.reminderMinute = minute
-            state.value = state.value.copy(hour = hour, minute = minute)
-            Reminders.reschedule(context, state.value)
+        private suspend fun update(change: StoredSettingsKt.Dsl.() -> Unit) {
+            try {
+                store.updateData { it.copy(change) }
+            } catch (ioException: IOException) {
+                Log.e(TAG, "Failed to write the settings", ioException)
+            }
         }
     }
+
+/** A setting that was never written has its default from [ReminderSettings]. */
+private fun StoredSettings.toReminderSettings(): ReminderSettings {
+    val defaults = ReminderSettings()
+    return ReminderSettings(
+        enabled = if (hasRemindersEnabled()) remindersEnabled else defaults.enabled,
+        time = if (hasReminderTime()) LocalTime.ofSecondOfDay(reminderTime.toLong()) else defaults.time,
+    )
+}

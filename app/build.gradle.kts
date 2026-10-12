@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.protobuf)
 }
 
 android {
@@ -40,6 +41,23 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+protobuf {
+    protoc {
+        artifact =
+            libs.protobuf.protoc
+                .get()
+                .toString()
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java") { option("lite") }
+                create("kotlin")
+            }
+        }
+    }
 }
 
 android {
@@ -81,6 +99,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.datastore)
+    implementation(libs.protobuf.kotlin.lite)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)

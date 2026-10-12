@@ -16,7 +16,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
-import org.robolectric.annotation.Config
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.testdoubles.FakeRepository
@@ -26,7 +25,6 @@ import org.shawnz.dailytracker.testdoubles.testGame
  * Which games are still unplayed today, and whether a notification is posted at all.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
 class ReminderWorkerTest {
     private val app: Application get() = RuntimeEnvironment.getApplication()
     private val game = testGame(id = 1)

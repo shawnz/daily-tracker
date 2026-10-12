@@ -10,58 +10,15 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import org.shawnz.dailytracker.MainActivity
 import org.shawnz.dailytracker.R
-import org.shawnz.dailytracker.data.ReminderSettings
 import org.shawnz.dailytracker.data.Repository
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
 
-object Reminders {
-    const val CHANNEL_ID = "daily-reminders"
-    const val NOTIFICATION_ID = 1
-    private const val WORK_NAME = "daily-reminder"
-
-    fun reschedule(
-        context: Context,
-        settings: ReminderSettings,
-    ) {
-        val manager = WorkManager.getInstance(context)
-        if (!settings.enabled) {
-            manager.cancelUniqueWork(WORK_NAME)
-            return
-        }
-        val request =
-            PeriodicWorkRequestBuilder<ReminderWorker>(Duration.ofDays(1))
-                .setInitialDelay(delayUntilNext(settings.hour, settings.minute))
-                .build()
-        manager.enqueueUniquePeriodicWork(
-            WORK_NAME,
-            ExistingPeriodicWorkPolicy.UPDATE,
-            request,
-        )
-    }
-
-    private fun delayUntilNext(
-        hour: Int,
-        minute: Int,
-    ): Duration {
-        val zone = ZoneId.systemDefault()
-        val now = LocalDateTime.now(zone)
-        var next = LocalDateTime.of(LocalDate.now(zone), LocalTime.of(hour, minute))
-        if (!next.isAfter(now)) next = next.plusDays(1)
-        return Duration.between(now, next)
-    }
-}
+const val REMINDER_CHANNEL_ID = "daily-reminders"
+private const val NOTIFICATION_ID = 1
 
 /** Posts one notification that lists the games that are still unplayed. */
 @HiltWorker
@@ -112,7 +69,7 @@ class ReminderWorker
 
             val notification =
                 NotificationCompat
-                    .Builder(context, Reminders.CHANNEL_ID)
+                    .Builder(context, REMINDER_CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(title)
                     .setContentText(names)
@@ -124,7 +81,7 @@ class ReminderWorker
             runCatching {
                 NotificationManagerCompat
                     .from(context)
-                    .notify(Reminders.NOTIFICATION_ID, notification)
+                    .notify(NOTIFICATION_ID, notification)
             }
             return Result.success()
         }

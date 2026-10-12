@@ -11,7 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.shawnz.dailytracker.browser.CustomTabLauncher
 import org.shawnz.dailytracker.data.SettingsRepository
 import org.shawnz.dailytracker.ui.AppNav
@@ -61,10 +64,11 @@ class MainActivity : ComponentActivity() {
      */
     private fun askForNotificationPermission() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        if (!settings.reminder.value.enabled) return
         val permission = Manifest.permission.POST_NOTIFICATIONS
         if (checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) return
         if (shouldShowRequestPermissionRationale(permission)) return
-        notificationPermissionRequest.launch(permission)
+        lifecycleScope.launch {
+            if (settings.reminder.first().enabled) notificationPermissionRequest.launch(permission)
+        }
     }
 }

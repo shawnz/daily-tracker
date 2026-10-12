@@ -12,7 +12,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.LocalDate
 
@@ -21,7 +20,6 @@ import java.time.LocalDate
  * the surrounding Kotlin.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
 class DefaultRepositoryTest {
     private lateinit var db: AppDatabase
     private lateinit var repo: Repository

@@ -5,7 +5,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 import org.shawnz.dailytracker.data.CustomGame
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
@@ -18,7 +17,6 @@ import java.time.LocalDate
  * Which games are listed in the text shared from the Today screen, and what is written for each.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
 class TodayShareTextTest {
     private val day = LocalDate.of(2026, 10, 6)
     private val wordle = testGame(id = 1, source = CatalogGame.WORDLE)

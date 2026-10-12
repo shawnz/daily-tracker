@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+option java_package = "org.shawnz.dailytracker.data";
+option java_multiple_files = true;
+
+message StoredSettings {
+  optional bool reminders_enabled = 1;
+
+  // The second of day.
+  optional int32 reminder_time = 2;
+}

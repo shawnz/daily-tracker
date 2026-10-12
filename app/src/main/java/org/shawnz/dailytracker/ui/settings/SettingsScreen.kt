@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.browser.CustomTabLauncher
 import org.shawnz.dailytracker.ui.PageMargin
+import java.time.LocalTime
 
 private const val PRIVACY_POLICY_URL = "https://shawnz.org/daily-tracker/privacy-policy.html"
 
@@ -61,8 +62,7 @@ internal fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val vm: SettingsViewModel = hiltViewModel()
-    val reminder by vm.reminder.collectAsStateWithLifecycle()
-    val enabled = reminder.enabled
+    val settings by vm.reminder.collectAsStateWithLifecycle()
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
     val versionName =
         remember {
@@ -100,6 +100,8 @@ internal fun SettingsScreen(
             )
         },
     ) { padding ->
+        val reminder = settings ?: return@Scaffold
+        val enabled = reminder.enabled
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             Row(
                 modifier =
@@ -136,9 +138,9 @@ internal fun SettingsScreen(
                         .clickable(enabled = enabled) {
                             TimePickerDialog(
                                 context,
-                                { _, h, m -> vm.setTime(h, m) },
-                                reminder.hour,
-                                reminder.minute,
+                                { _, h, m -> vm.setTime(LocalTime.of(h, m)) },
+                                reminder.time.hour,
+                                reminder.time.minute,
                                 true,
                             ).show()
                         }.padding(horizontal = PageMargin, vertical = 16.dp),
@@ -147,7 +149,7 @@ internal fun SettingsScreen(
             ) {
                 Text(stringResource(R.string.settings_reminder_time))
                 Text(
-                    text = "%02d:%02d".format(reminder.hour, reminder.minute),
+                    text = "%02d:%02d".format(reminder.time.hour, reminder.time.minute),
                     style = MaterialTheme.typography.bodyLarge,
                     color =
                         if (enabled) {

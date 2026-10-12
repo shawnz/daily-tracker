@@ -10,14 +10,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import java.time.LocalDate
 
 /**
  * Which days in the grid can be chosen, and which are highlighted as played.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
 class DayPickerContentTest {
     @get:Rule
     val compose = createComposeRule()

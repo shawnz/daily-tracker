@@ -7,6 +7,11 @@
 # Names are kept, so that the released app can be inspected.
 -dontobfuscate
 
+# The fields of a protobuf message are read by reflection.
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite* {
+   <fields>;
+}
+
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:

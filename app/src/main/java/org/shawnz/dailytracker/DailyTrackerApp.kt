@@ -7,8 +7,8 @@ import android.app.NotificationManager
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
-import org.shawnz.dailytracker.data.SettingsRepository
-import org.shawnz.dailytracker.work.Reminders
+import org.shawnz.dailytracker.work.REMINDER_CHANNEL_ID
+import org.shawnz.dailytracker.work.ReminderScheduler
 import javax.inject.Inject
 
 // AndroidManifest.xml removes WorkManagerInitializer, but the check reports it anyway:
@@ -20,7 +20,7 @@ class DailyTrackerApp :
     Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
-    @Inject lateinit var settings: SettingsRepository
+    @Inject lateinit var reminderScheduler: ReminderScheduler
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -28,13 +28,13 @@ class DailyTrackerApp :
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        Reminders.reschedule(this, settings.reminder.value)
+        reminderScheduler.start()
     }
 
     private fun createNotificationChannel() {
         val channel =
             NotificationChannel(
-                Reminders.CHANNEL_ID,
+                REMINDER_CHANNEL_ID,
                 getString(R.string.reminder_channel_name),
                 NotificationManager.IMPORTANCE_DEFAULT,
             ).apply { description = getString(R.string.reminder_channel_description) }

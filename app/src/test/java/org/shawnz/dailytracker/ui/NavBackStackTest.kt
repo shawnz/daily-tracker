@@ -10,7 +10,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import org.shawnz.dailytracker.ui.add.Add
 import org.shawnz.dailytracker.ui.add.AddCustom
 import org.shawnz.dailytracker.ui.detail.GameDetail
@@ -23,7 +22,6 @@ import org.shawnz.dailytracker.ui.today.Today
  * `@Serializable` is a crash on restore.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
 class NavBackStackTest {
     @get:Rule
     val compose = createComposeRule()
