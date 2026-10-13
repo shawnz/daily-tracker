@@ -1,7 +1,6 @@
 package org.shawnz.dailytracker.ui.settings
 
 import android.Manifest
-import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -32,17 +31,26 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
+import androidx.compose.material3.TimePickerDialogDefaults
+import androidx.compose.material3.TimePickerDisplayMode
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -157,6 +165,17 @@ internal fun SettingsScreen(
 
             HorizontalDivider()
             val fixedTime = reminder.mode == ReminderMode.FIXED_TIME
+            var pickingTime by remember { mutableStateOf(false) }
+            if (pickingTime) {
+                ReminderTimeDialog(
+                    time = reminder.time,
+                    onPick = {
+                        vm.pickTime(it)
+                        pickingTime = false
+                    },
+                    onDismiss = { pickingTime = false },
+                )
+            }
             val hours = reminder.leadTime.toHours().toInt()
             val shorter = LEAD_TIME_CHOICES.lastOrNull { it < reminder.leadTime }
             val longer = LEAD_TIME_CHOICES.firstOrNull { it > reminder.leadTime }
@@ -169,18 +188,9 @@ internal fun SettingsScreen(
                     enabled = enabled,
                     onClick = { vm.setMode(ReminderMode.FIXED_TIME) },
                 ) {
-                    TextButton(
-                        onClick = {
-                            TimePickerDialog(
-                                context,
-                                { _, h, m -> vm.pickTime(LocalTime.of(h, m)) },
-                                reminder.time.hour,
-                                reminder.time.minute,
-                                DateFormat.is24HourFormat(context),
-                            ).show()
-                        },
-                        enabled = enabled,
-                    ) { Text(stringResource(R.string.action_edit)) }
+                    TextButton(onClick = { pickingTime = true }, enabled = enabled) {
+                        Text(stringResource(R.string.action_edit))
+                    }
                 }
                 ModeRow(
                     title = pluralStringResource(R.plurals.settings_reminder_before_reset, hours, hours),
@@ -298,6 +308,61 @@ private fun ModeRow(
             )
         }
         controls()
+    }
+}
+
+/**
+ * A dialog for choosing a time of day. It opens at [time], and has a dial or typed entry.
+ *
+ * The structure is from `TimePickerSwitchableSample` in the Material 3 samples.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderTimeDialog(
+    time: LocalTime,
+    onPick: (LocalTime) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val state = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute)
+    var isPickerMode by rememberSaveable { mutableStateOf(true) }
+    val displayMode =
+        if (isPickerMode) {
+            TimePickerDisplayMode.Picker
+        } else {
+            TimePickerDisplayMode.Input
+        }
+    val windowHeight =
+        with(LocalDensity.current) {
+            LocalWindowInfo.current.containerSize.height
+                .toDp()
+        }
+    val roomForDial = windowHeight > TimePickerDialogDefaults.MinHeightForTimePicker
+
+    TimePickerDialog(
+        title = { TimePickerDialogDefaults.Title(displayMode = displayMode) },
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onPick(LocalTime.of(state.hour, state.minute)) }) {
+                Text(stringResource(R.string.action_ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+        modeToggleButton = {
+            if (roomForDial) {
+                TimePickerDialogDefaults.DisplayModeToggle(
+                    onDisplayModeChange = { isPickerMode = !isPickerMode },
+                    displayMode = displayMode,
+                )
+            }
+        },
+    ) {
+        if (displayMode == TimePickerDisplayMode.Picker && roomForDial) {
+            TimePicker(state = state)
+        } else {
+            TimeInput(state = state)
+        }
     }
 }
 
