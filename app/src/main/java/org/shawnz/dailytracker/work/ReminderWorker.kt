@@ -13,14 +13,21 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.first
 import org.shawnz.dailytracker.MainActivity
 import org.shawnz.dailytracker.R
+import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
+import org.shawnz.dailytracker.data.SettingsRepository
+import java.time.Clock
 
 const val REMINDER_CHANNEL_ID = "daily-reminders"
 private const val NOTIFICATION_ID = 1
 
-/** Posts one notification that lists the games that are still unplayed. */
+/**
+ * Posts one notification that lists the games that are still unplayed, then schedules the
+ * next reminder.
+ */
 @HiltWorker
 class ReminderWorker
     @AssistedInject
@@ -28,22 +35,28 @@ class ReminderWorker
         @Assisted context: Context,
         @Assisted params: WorkerParameters,
         private val repo: Repository,
+        private val settings: SettingsRepository,
+        private val scheduler: ReminderScheduler,
     ) : CoroutineWorker(context, params) {
         override suspend fun doWork(): Result {
-            val context = applicationContext
+            val reminder = settings.reminder.first()
+            val games = repo.activeGames()
 
             val outstanding =
-                repo
-                    .activeGames()
-                    .filter { it.remindersEnabled }
+                gamesToRemind(reminder, games, Clock.systemDefaultZone())
                     .filter { repo.entryFor(it) == null }
+            if (outstanding.isNotEmpty()) post(outstanding)
 
-            if (outstanding.isEmpty()) return Result.success()
+            scheduler.scheduleNext(reminder, games)
+            return Result.success()
+        }
 
+        private fun post(outstanding: List<Game>) {
+            val context = applicationContext
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
             ) {
-                return Result.success()
+                return
             }
 
             val names = outstanding.joinToString(", ") { it.title }
@@ -83,6 +96,5 @@ class ReminderWorker
                     .from(context)
                     .notify(NOTIFICATION_ID, notification)
             }
-            return Result.success()
         }
     }

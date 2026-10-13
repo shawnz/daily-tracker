@@ -87,9 +87,17 @@
     <string name="wordle_bot_luck">Luck %1$d/99</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_reminders">Daily reminder</string>
+    <string name="settings_reminders">Reminders</string>
     <string name="settings_reminders_body">Lists the games you haven\'t played yet.</string>
-    <string name="settings_reminder_time">Reminder time</string>
+    <string name="settings_reminder_fixed">Remind at %1$s each day</string>
+    <string name="settings_reminder_fixed_body">One reminder for all your games.</string>
+    <plurals name="settings_reminder_before_reset">
+        <item quantity="one">Remind with %1$d hour left</item>
+        <item quantity="other">Remind with %1$d hours left</item>
+    </plurals>
+    <string name="settings_reminder_before_reset_body">Reminders as each game\'s time runs out.</string>
+    <string name="settings_reminder_lead_time_less">Fewer hours</string>
+    <string name="settings_reminder_lead_time_more">More hours</string>
     <string name="settings_notification_permission">Notifications are turned off for this app. Tap to turn them on.</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_app_version">%1$s %2$s</string>

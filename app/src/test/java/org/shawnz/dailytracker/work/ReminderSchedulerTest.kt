@@ -2,6 +2,8 @@ package org.shawnz.dailytracker.work
 
 import android.app.Application
 import androidx.work.Configuration
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkQuery
@@ -13,14 +15,20 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.shawnz.dailytracker.data.ReminderMode
 import org.shawnz.dailytracker.data.ReminderSettings
+import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.SettingsRepository
+import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.FakeSettingsRepository
+import org.shawnz.dailytracker.testdoubles.testGame
+import java.time.Duration
 import java.time.LocalTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -28,14 +36,19 @@ import java.time.LocalTime
 class ReminderSchedulerTest {
     private val app: Application get() = RuntimeEnvironment.getApplication()
 
+    private val beforeReset = ReminderSettings(mode = ReminderMode.BEFORE_RESET)
+
     @Before
     fun setUp() {
         val configuration = Configuration.Builder().setExecutor(SynchronousExecutor()).build()
         WorkManagerTestInitHelper.initializeTestWorkManager(app, configuration)
     }
 
-    private fun TestScope.start(settings: SettingsRepository) {
-        ReminderScheduler(app, backgroundScope, settings).start()
+    private fun TestScope.start(
+        settings: SettingsRepository,
+        repository: Repository = FakeRepository(),
+    ) {
+        ReminderScheduler(app, backgroundScope, settings, repository).start()
     }
 
     private fun scheduled(): List<WorkInfo> =
@@ -93,5 +106,49 @@ class ReminderSchedulerTest {
             settings.setTime(LocalTime.of(20, 0))
 
             assertNotEquals(before, scheduled().single().initialDelayMillis)
+        }
+
+    @Test
+    fun `nothing is scheduled before a reset when no game is tracked`() =
+        runTest(UnconfinedTestDispatcher()) {
+            start(FakeSettingsRepository(beforeReset))
+
+            assertEquals(0, scheduled().size)
+        }
+
+    @Test
+    fun `a new game schedules the reminder before its reset`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val repository = FakeRepository()
+            start(FakeSettingsRepository(beforeReset), repository)
+
+            repository.games.value = listOf(testGame())
+
+            assertEquals(1, scheduled().size)
+        }
+
+    @Test
+    fun `a reminder that is already scheduled is kept when the process starts`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val settings = FakeSettingsRepository()
+            start(settings)
+            val pending = scheduled().single().id
+
+            start(settings)
+
+            assertEquals(pending, scheduled().single().id)
+        }
+
+    @Test
+    fun `the periodic reminder of an earlier version is cancelled`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val periodic = PeriodicWorkRequestBuilder<ReminderWorker>(Duration.ofDays(1)).build()
+            WorkManager
+                .getInstance(app)
+                .enqueueUniquePeriodicWork("daily-reminder", ExistingPeriodicWorkPolicy.UPDATE, periodic)
+
+            start(FakeSettingsRepository())
+
+            assertNull(scheduled().single().periodicityInfo)
         }
 }

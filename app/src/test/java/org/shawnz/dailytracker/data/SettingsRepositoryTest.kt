@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import java.io.IOException
+import java.time.Duration
 import java.time.LocalTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -93,6 +94,29 @@ class SettingsRepositoryTest {
             val reopened = withRepository { it.reminder.first() }
 
             assertEquals(LocalTime.of(6, 15), reopened.time)
+        }
+
+    @Test
+    fun `reminders start at a fixed time with a lead time of four hours`() =
+        runTest {
+            val settings = withRepository { it.reminder.first() }
+
+            assertEquals(ReminderMode.FIXED_TIME, settings.mode)
+            assertEquals(Duration.ofHours(4), settings.leadTime)
+        }
+
+    @Test
+    fun `a new mode and lead time are stored`() =
+        runTest {
+            withRepository {
+                it.setMode(ReminderMode.BEFORE_RESET)
+                it.setLeadTime(Duration.ofHours(2))
+            }
+
+            val reopened = withRepository { it.reminder.first() }
+
+            assertEquals(ReminderMode.BEFORE_RESET, reopened.mode)
+            assertEquals(Duration.ofHours(2), reopened.leadTime)
         }
 
     @Test

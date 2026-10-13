@@ -13,17 +13,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,7 +42,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -49,10 +58,17 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.browser.CustomTabLauncher
+import org.shawnz.dailytracker.data.ReminderMode
 import org.shawnz.dailytracker.ui.PageMargin
+import java.time.Duration
 import java.time.LocalTime
 
 private const val PRIVACY_POLICY_URL = "https://shawnz.org/daily-tracker/privacy-policy.html"
+
+private val LEAD_TIME_CHOICES = listOf(1L, 2L, 3L, 4L, 6L, 8L, 12L).map(Duration::ofHours)
+
+/** The space between the edge of an icon button and its icon. */
+private val ButtonInset = 12.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +118,13 @@ internal fun SettingsScreen(
     ) { padding ->
         val reminder = settings ?: return@Scaffold
         val enabled = reminder.enabled
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState()),
+        ) {
             Row(
                 modifier =
                     Modifier
@@ -131,33 +153,61 @@ internal fun SettingsScreen(
             }
 
             HorizontalDivider()
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = enabled) {
+            val fixedTime = reminder.mode == ReminderMode.FIXED_TIME
+            val hours = reminder.leadTime.toHours().toInt()
+            val shorter = LEAD_TIME_CHOICES.lastOrNull { it < reminder.leadTime }
+            val longer = LEAD_TIME_CHOICES.firstOrNull { it > reminder.leadTime }
+            Column(Modifier.selectableGroup()) {
+                ModeRow(
+                    title =
+                        stringResource(
+                            R.string.settings_reminder_fixed,
+                            "%02d:%02d".format(reminder.time.hour, reminder.time.minute),
+                        ),
+                    body = stringResource(R.string.settings_reminder_fixed_body),
+                    selected = fixedTime,
+                    enabled = enabled,
+                    onClick = { vm.setMode(ReminderMode.FIXED_TIME) },
+                ) {
+                    TextButton(
+                        onClick = {
                             TimePickerDialog(
                                 context,
-                                { _, h, m -> vm.setTime(LocalTime.of(h, m)) },
+                                { _, h, m -> vm.pickTime(LocalTime.of(h, m)) },
                                 reminder.time.hour,
                                 reminder.time.minute,
                                 true,
                             ).show()
-                        }.padding(horizontal = PageMargin, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(stringResource(R.string.settings_reminder_time))
-                Text(
-                    text = "%02d:%02d".format(reminder.time.hour, reminder.time.minute),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color =
-                        if (enabled) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                )
+                        enabled = enabled,
+                    ) { Text(stringResource(R.string.action_edit)) }
+                }
+                ModeRow(
+                    title = pluralStringResource(R.plurals.settings_reminder_before_reset, hours, hours),
+                    body = stringResource(R.string.settings_reminder_before_reset_body),
+                    selected = !fixedTime,
+                    enabled = enabled,
+                    onClick = { vm.setMode(ReminderMode.BEFORE_RESET) },
+                ) {
+                    IconButton(
+                        onClick = { shorter?.let(vm::pickLeadTime) },
+                        enabled = enabled && shorter != null,
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_remove),
+                            stringResource(R.string.settings_reminder_lead_time_less),
+                        )
+                    }
+                    IconButton(
+                        onClick = { longer?.let(vm::pickLeadTime) },
+                        enabled = enabled && longer != null,
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_add),
+                            stringResource(R.string.settings_reminder_lead_time_more),
+                        )
+                    }
+                }
             }
             HorizontalDivider()
 
@@ -209,6 +259,45 @@ internal fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * A reminder mode, with [controls] for its value at the end of the row. The mode is selected
+ * by a tap on the row, and [controls] are separate targets.
+ */
+@Composable
+private fun ModeRow(
+    title: String,
+    body: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    controls: @Composable RowScope.() -> Unit,
+) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .selectable(
+                    selected = selected,
+                    enabled = enabled,
+                    role = Role.RadioButton,
+                    onClick = onClick,
+                ).padding(start = PageMargin, end = PageMargin - ButtonInset, top = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = null, enabled = enabled)
+        Column(Modifier.weight(1f).padding(horizontal = 16.dp)) {
+            Text(title)
+            Text(
+                body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        controls()
     }
 }
 
