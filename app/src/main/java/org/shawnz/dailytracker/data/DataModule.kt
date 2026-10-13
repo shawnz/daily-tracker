@@ -44,6 +44,7 @@ object DataModule {
     ): DataStore<StoredSettings> = settingsDataStore(context, CoroutineScope(scope.coroutineContext + ioDispatcher))
 }
 
+@Suppress("unused") // Used by Hilt.
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
