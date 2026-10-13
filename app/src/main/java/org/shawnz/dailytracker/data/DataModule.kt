@@ -2,6 +2,7 @@ package org.shawnz.dailytracker.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.room.Room
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -22,7 +23,11 @@ object DataModule {
     @Singleton
     fun database(
         @ApplicationContext context: Context,
-    ): AppDatabase = AppDatabase.get(context)
+    ): AppDatabase =
+        Room
+            .databaseBuilder(context, AppDatabase::class.java, "daily-tracker.db")
+            .addCallback(GameSourceRule)
+            .build()
 
     @Provides
     fun gameDao(database: AppDatabase): GameDao = database.gameDao()

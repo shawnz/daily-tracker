@@ -1,11 +1,8 @@
 package org.shawnz.dailytracker.data
 
-import android.content.Context
-import androidx.annotation.VisibleForTesting
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.DeleteColumn
-import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
@@ -25,23 +22,6 @@ abstract class AppDatabase : RoomDatabase() {
 
     @DeleteColumn(tableName = "entries", columnName = "success")
     class DropEntrySuccess : AutoMigrationSpec
-
-    companion object {
-        @Volatile
-        private var instance: AppDatabase? = null
-
-        fun get(context: Context): AppDatabase =
-            instance ?: synchronized(this) {
-                instance ?: Room
-                    .databaseBuilder(
-                        context.applicationContext,
-                        AppDatabase::class.java,
-                        "daily-tracker.db",
-                    ).addCallback(GameSourceRule)
-                    .build()
-                    .also { instance = it }
-            }
-    }
 }
 
 /**
@@ -49,7 +29,6 @@ abstract class AppDatabase : RoomDatabase() {
  *
  * Uses temporary triggers because Room does not support CHECK constraints.
  */
-@VisibleForTesting
 internal object GameSourceRule : RoomDatabase.Callback() {
     override fun onOpen(db: SupportSQLiteDatabase) {
         db.execSQL(trigger("games_source_on_insert", "INSERT"))
