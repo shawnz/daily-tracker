@@ -27,21 +27,21 @@ enum class RolloverType { UNSCHEDULED, LOCAL_MIDNIGHT, FIXED_ZONE }
 /**
  * The puzzle day a game is on now.
  *
- * [minuteOfDay] is the time of day when the next day's puzzle becomes available. Use 0 for
- * midnight, and 1320 for 22:00.
+ * [time] is the time of day when the next day's puzzle becomes available.
  */
 fun currentPuzzleDay(
     type: RolloverType,
     zoneId: String?,
-    minuteOfDay: Int,
+    time: LocalTime,
     clock: Clock = Clock.systemDefaultZone(),
 ): LocalDate {
     val zone = rolloverZone(type, zoneId, clock) ?: return LocalDate.now(clock)
     val now = clock.instant().atZone(zone)
-    // Shift the time forward to the next rollover. The date of the result is the current
-    // puzzle day. With a minuteOfDay of 0, the modulo makes the shift 0.
-    val shiftMinutes = ((1440 - minuteOfDay) % 1440).toLong()
-    return now.plusMinutes(shiftMinutes).toLocalDate()
+    val today = now.toLocalDate()
+    // From [time] until midnight, the puzzle is the next day's. Midnight is the start of a
+    // day, so with a time of midnight the puzzle day is always the date.
+    val nextDay = time != LocalTime.MIDNIGHT && !now.toLocalTime().isBefore(time)
+    return if (nextDay) today.plusDays(1) else today
 }
 
 /**
@@ -54,10 +54,10 @@ fun currentPuzzleDay(
 fun lastPuzzleDay(
     type: RolloverType,
     zoneId: String?,
-    minuteOfDay: Int,
+    time: LocalTime,
     clock: Clock = Clock.systemDefaultZone(),
 ): LocalDate {
-    val current = currentPuzzleDay(type, zoneId, minuteOfDay, clock)
+    val current = currentPuzzleDay(type, zoneId, time, clock)
     return if (type == RolloverType.UNSCHEDULED) current.plusDays(1) else current
 }
 
@@ -65,11 +65,11 @@ fun lastPuzzleDay(
 fun nextRollover(
     type: RolloverType,
     zoneId: String?,
-    minuteOfDay: Int,
+    time: LocalTime,
     clock: Clock = Clock.systemDefaultZone(),
 ): Instant? {
     val zone = rolloverZone(type, zoneId, clock) ?: return null
-    return nextAt(zone, minuteOfDay, clock)
+    return nextAt(zone, time, clock)
 }
 
 /**
@@ -79,11 +79,11 @@ fun nextRollover(
 fun nextPuzzleDayChange(
     type: RolloverType,
     zoneId: String?,
-    minuteOfDay: Int,
+    time: LocalTime,
     clock: Clock = Clock.systemDefaultZone(),
 ): Instant {
-    val zone = rolloverZone(type, zoneId, clock) ?: return nextAt(clock.zone, 0, clock)
-    return nextAt(zone, minuteOfDay, clock)
+    val zone = rolloverZone(type, zoneId, clock) ?: return nextAt(clock.zone, LocalTime.MIDNIGHT, clock)
+    return nextAt(zone, time, clock)
 }
 
 /** Midnight, or the next puzzle day of [games], whichever is sooner. */
@@ -93,9 +93,9 @@ fun nextDayChange(
 ): Instant {
     val puzzleDays =
         games.map {
-            nextPuzzleDayChange(it.rolloverType, it.rolloverZoneId, it.rolloverMinuteOfDay, clock)
+            nextPuzzleDayChange(it.rolloverType, it.rolloverZoneId, it.rolloverTime, clock)
         }
-    val midnight = nextPuzzleDayChange(RolloverType.LOCAL_MIDNIGHT, null, 0, clock)
+    val midnight = nextPuzzleDayChange(RolloverType.LOCAL_MIDNIGHT, null, LocalTime.MIDNIGHT, clock)
     return (puzzleDays + midnight).min()
 }
 
@@ -112,14 +112,13 @@ fun dayChanges(games: List<Game>): Flow<Unit> =
         }
     }
 
-/** The next instant at which the time of day in [zone] is [minuteOfDay]. */
-private fun nextAt(
+/** The next instant at which the time of day in [zone] is [time]. */
+internal fun nextAt(
     zone: ZoneId,
-    minuteOfDay: Int,
+    time: LocalTime,
     clock: Clock,
 ): Instant {
     val now = clock.instant()
-    val time = LocalTime.ofSecondOfDay(Math.floorMod(minuteOfDay, 1440) * 60L)
     val today = now.atZone(zone).toLocalDate()
     val next =
         ZonedDateTime.of(today, time, zone).takeIf { it.toInstant().isAfter(now) }

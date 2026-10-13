@@ -11,6 +11,7 @@ import java.time.DateTimeException
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 
 class RolloverTest {
@@ -32,7 +33,7 @@ class RolloverTest {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(
             LocalDate.of(2026, 9, 7),
-            currentPuzzleDay(RolloverType.LOCAL_MIDNIGHT, null, 0, clock),
+            currentPuzzleDay(RolloverType.LOCAL_MIDNIGHT, null, LocalTime.MIDNIGHT, clock),
         )
     }
 
@@ -43,23 +44,23 @@ class RolloverTest {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(
             LocalDate.of(2026, 9, 8),
-            currentPuzzleDay(RolloverType.FIXED_ZONE, "UTC", 0, clock),
+            currentPuzzleDay(RolloverType.FIXED_ZONE, "UTC", LocalTime.MIDNIGHT, clock),
         )
     }
 
     @Test
     fun `evening rollover advances before local midnight`() {
-        val minuteOfDay = 22 * 60
+        val time = LocalTime.of(22, 0)
         val after = clockAt("2026-09-07T22:30", newYork)
         assertEquals(
             LocalDate.of(2026, 9, 8),
-            currentPuzzleDay(RolloverType.FIXED_ZONE, "America/New_York", minuteOfDay, after),
+            currentPuzzleDay(RolloverType.FIXED_ZONE, "America/New_York", time, after),
         )
 
         val before = clockAt("2026-09-07T21:00", newYork)
         assertEquals(
             LocalDate.of(2026, 9, 7),
-            currentPuzzleDay(RolloverType.FIXED_ZONE, "America/New_York", minuteOfDay, before),
+            currentPuzzleDay(RolloverType.FIXED_ZONE, "America/New_York", time, before),
         )
     }
 
@@ -67,7 +68,7 @@ class RolloverTest {
     fun `a fixed zone that cannot be read throws`() {
         val clock = clockAt("2026-09-07T12:00", newYork)
         assertThrows(DateTimeException::class.java) {
-            currentPuzzleDay(RolloverType.FIXED_ZONE, "Not/AZone", 0, clock)
+            currentPuzzleDay(RolloverType.FIXED_ZONE, "Not/AZone", LocalTime.MIDNIGHT, clock)
         }
     }
 
@@ -76,9 +77,9 @@ class RolloverTest {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(
             LocalDate.of(2026, 9, 7),
-            currentPuzzleDay(RolloverType.UNSCHEDULED, null, 0, clock),
+            currentPuzzleDay(RolloverType.UNSCHEDULED, null, LocalTime.MIDNIGHT, clock),
         )
-        assertNull(nextRollover(RolloverType.UNSCHEDULED, null, 0, clock))
+        assertNull(nextRollover(RolloverType.UNSCHEDULED, null, LocalTime.MIDNIGHT, clock))
     }
 
     @Test
@@ -86,7 +87,7 @@ class RolloverTest {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(
             LocalDate.of(2026, 9, 8),
-            lastPuzzleDay(RolloverType.UNSCHEDULED, null, 0, clock),
+            lastPuzzleDay(RolloverType.UNSCHEDULED, null, LocalTime.MIDNIGHT, clock),
         )
     }
 
@@ -95,11 +96,11 @@ class RolloverTest {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(
             LocalDate.of(2026, 9, 7),
-            lastPuzzleDay(RolloverType.LOCAL_MIDNIGHT, null, 0, clock),
+            lastPuzzleDay(RolloverType.LOCAL_MIDNIGHT, null, LocalTime.MIDNIGHT, clock),
         )
         assertEquals(
             LocalDate.of(2026, 9, 8),
-            lastPuzzleDay(RolloverType.FIXED_ZONE, "UTC", 0, clock),
+            lastPuzzleDay(RolloverType.FIXED_ZONE, "UTC", LocalTime.MIDNIGHT, clock),
         )
     }
 
@@ -108,7 +109,7 @@ class RolloverTest {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(
             instantAt("2026-09-08T00:00", newYork),
-            nextPuzzleDayChange(RolloverType.UNSCHEDULED, null, 0, clock),
+            nextPuzzleDayChange(RolloverType.UNSCHEDULED, null, LocalTime.MIDNIGHT, clock),
         )
     }
 
@@ -116,8 +117,8 @@ class RolloverTest {
     fun `a scheduled day changes at its own rollover`() {
         val clock = clockAt("2026-09-07T21:00", newYork)
         assertEquals(
-            nextRollover(RolloverType.FIXED_ZONE, "UTC", 0, clock),
-            nextPuzzleDayChange(RolloverType.FIXED_ZONE, "UTC", 0, clock),
+            nextRollover(RolloverType.FIXED_ZONE, "UTC", LocalTime.MIDNIGHT, clock),
+            nextPuzzleDayChange(RolloverType.FIXED_ZONE, "UTC", LocalTime.MIDNIGHT, clock),
         )
     }
 
@@ -126,20 +127,20 @@ class RolloverTest {
         val clock = clockAt("2026-09-07T23:30", newYork)
         assertEquals(
             instantAt("2026-09-08T00:00", newYork),
-            nextRollover(RolloverType.LOCAL_MIDNIGHT, null, 0, clock),
+            nextRollover(RolloverType.LOCAL_MIDNIGHT, null, LocalTime.MIDNIGHT, clock),
         )
     }
 
     @Test
     fun `next rollover is the moment the puzzle day changes`() {
-        val minuteOfDay = 22 * 60
+        val time = LocalTime.of(22, 0)
         val boundary = instantAt("2026-09-07T22:00", newYork)
         assertEquals(
             boundary,
             nextRollover(
                 RolloverType.FIXED_ZONE,
                 "America/New_York",
-                minuteOfDay,
+                time,
                 clockAt("2026-09-07T21:00", newYork),
             ),
         )
@@ -148,11 +149,11 @@ class RolloverTest {
         val at = Clock.fixed(boundary, newYork)
         assertEquals(
             LocalDate.of(2026, 9, 8),
-            currentPuzzleDay(RolloverType.FIXED_ZONE, "America/New_York", minuteOfDay, at),
+            currentPuzzleDay(RolloverType.FIXED_ZONE, "America/New_York", time, at),
         )
         assertEquals(
             instantAt("2026-09-08T22:00", newYork),
-            nextRollover(RolloverType.FIXED_ZONE, "America/New_York", minuteOfDay, at),
+            nextRollover(RolloverType.FIXED_ZONE, "America/New_York", time, at),
         )
     }
 
@@ -193,17 +194,17 @@ class RolloverTest {
         val winter = clockAt("2026-03-07T03:30", utc)
         assertEquals(
             LocalDate.of(2026, 3, 6),
-            currentPuzzleDay(RolloverType.FIXED_ZONE, zone, 0, winter),
+            currentPuzzleDay(RolloverType.FIXED_ZONE, zone, LocalTime.MIDNIGHT, winter),
         )
         assertEquals(
             instantAt("2026-03-07T04:00", utc),
-            nextRollover(RolloverType.FIXED_ZONE, zone, 0, winter),
+            nextRollover(RolloverType.FIXED_ZONE, zone, LocalTime.MIDNIGHT, winter),
         )
 
         val summer = clockAt("2026-09-07T03:30", utc)
         assertEquals(
             instantAt("2026-09-07T04:00", utc),
-            nextRollover(RolloverType.FIXED_ZONE, zone, 0, summer),
+            nextRollover(RolloverType.FIXED_ZONE, zone, LocalTime.MIDNIGHT, summer),
         )
     }
 }

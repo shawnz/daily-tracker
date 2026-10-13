@@ -2,8 +2,10 @@ package org.shawnz.dailytracker.data
 
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.parse.ResultParser
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** A game's details, whether from the catalog or typed by the user. */
 interface GameSource {
@@ -39,13 +41,16 @@ data class Game(
 
     val rolloverType: RolloverType get() = catalogGame?.rolloverType ?: RolloverType.UNSCHEDULED
     val rolloverZoneId: String? get() = catalogGame?.rolloverZoneId
-    val rolloverMinuteOfDay: Int get() = catalogGame?.rolloverMinuteOfDay ?: 0
+    val rolloverTime: LocalTime get() = catalogGame?.rolloverTime ?: LocalTime.MIDNIGHT
 
-    fun currentPuzzleDay(): LocalDate = currentPuzzleDay(rolloverType, rolloverZoneId, rolloverMinuteOfDay)
+    fun currentPuzzleDay(): LocalDate = currentPuzzleDay(rolloverType, rolloverZoneId, rolloverTime)
 
-    fun lastPuzzleDay(): LocalDate = lastPuzzleDay(rolloverType, rolloverZoneId, rolloverMinuteOfDay)
+    fun lastPuzzleDay(): LocalDate = lastPuzzleDay(rolloverType, rolloverZoneId, rolloverTime)
 
-    fun nextRollover(): Instant? = nextRollover(rolloverType, rolloverZoneId, rolloverMinuteOfDay)
+    fun nextRollover(): Instant? = nextRollover(rolloverType, rolloverZoneId, rolloverTime)
+
+    fun nextPuzzleDayChange(clock: Clock = Clock.systemDefaultZone()): Instant =
+        nextPuzzleDayChange(rolloverType, rolloverZoneId, rolloverTime, clock)
 }
 
 /** Fails on a row with neither a catalog game nor a title and URL. */

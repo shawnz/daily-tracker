@@ -29,6 +29,7 @@ import org.shawnz.dailytracker.parse.TangoParser
 import org.shawnz.dailytracker.parse.WendParser
 import org.shawnz.dailytracker.parse.WordleParser
 import org.shawnz.dailytracker.parse.ZipParser
+import java.time.LocalTime
 
 /**
  * The app's built-in games. A user can also add their own.
@@ -49,7 +50,7 @@ enum class CatalogGame(
     val parser: ResultParser<*>? = null,
     val rolloverType: RolloverType = RolloverType.UNSCHEDULED,
     val rolloverZoneId: String? = null,
-    val rolloverMinuteOfDay: Int = 0,
+    val rolloverTime: LocalTime = LocalTime.MIDNIGHT,
 ) : GameSource {
     WORDLE(
         title = "Wordle",
