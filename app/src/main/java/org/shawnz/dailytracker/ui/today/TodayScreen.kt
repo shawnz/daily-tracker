@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -81,6 +82,7 @@ internal fun TodayScreen(
     val vm: TodayViewModel = hiltViewModel()
     val today = vm.state.collectAsStateWithLifecycle().value
     val context = LocalContext.current
+    val resources = LocalResources.current
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
 
     // Unplayed games, in list order, are the ones most likely to be opened next.
@@ -115,7 +117,7 @@ internal fun TodayScreen(
                             val rows = today?.rows.orEmpty()
                             shareText(
                                 context,
-                                todayShareText(rows, LocalDate.now(), context.resources),
+                                todayShareText(rows, LocalDate.now(), resources),
                             )
                         },
                         enabled = today != null && today.doneCount > 0,
