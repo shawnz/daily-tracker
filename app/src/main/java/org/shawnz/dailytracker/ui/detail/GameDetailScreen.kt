@@ -72,11 +72,11 @@ internal fun GameDetailScreen(
     gameId: Long,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: GameDetailViewModel =
+        hiltViewModel<GameDetailViewModel, GameDetailViewModel.Factory> { it.create(gameId) },
 ) {
-    val vm: GameDetailViewModel =
-        hiltViewModel<GameDetailViewModel, GameDetailViewModel.Factory> { it.create(gameId) }
-    val state by vm.state.collectAsStateWithLifecycle()
-    val closed by vm.closed.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val closed by viewModel.closed.collectAsStateWithLifecycle()
     LaunchedEffect(closed) { if (closed) onBack() }
     val context = LocalContext.current
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
@@ -126,7 +126,7 @@ internal fun GameDetailScreen(
                 },
                 actions = {
                     if (game != null) {
-                        IconButton(onClick = { vm.setReminders(!game.remindersEnabled) }) {
+                        IconButton(onClick = { viewModel.setReminders(!game.remindersEnabled) }) {
                             ReminderIcon(enabled = game.remindersEnabled)
                         }
                         Box {
@@ -147,7 +147,7 @@ internal fun GameDetailScreen(
                                         // An archived game is off the Today list, so this
                                         // page has nothing left to show. Unarchiving is on
                                         // the Add screen.
-                                        vm.setArchived(true)
+                                        viewModel.setArchived(true)
                                     },
                                 )
                                 DropdownMenuItem(
@@ -200,7 +200,7 @@ internal fun GameDetailScreen(
                     draft = draft,
                     editing = editing,
                     onDraftChange = { draft = it },
-                    onStep = { vm.stepDay(it) },
+                    onStep = { viewModel.stepDay(it) },
                     onPickDay = { pickingDay = true },
                     onEdit = {
                         draft = state.selectedEntry?.rawShareText.orEmpty()
@@ -208,14 +208,14 @@ internal fun GameDetailScreen(
                     },
                     onCancelEdit = { editing = false },
                     onSave = {
-                        vm.record(draft)
+                        viewModel.record(draft)
                         editing = false
                     },
                     onShare = {
                         state.selectedEntry?.rawShareText?.let { shareText(context, it) }
                     },
                     onClear = {
-                        vm.clearSelected()
+                        viewModel.clearSelected()
                         // The card is about to show the empty state for this day, so the
                         // field must not still contain the text that was just deleted.
                         draft = ""
@@ -250,7 +250,7 @@ internal fun GameDetailScreen(
             playedDays = state.playedDays,
             onPick = {
                 pickingDay = false
-                vm.selectDay(it)
+                viewModel.selectDay(it)
             },
             onDismiss = { pickingDay = false },
         )
@@ -264,7 +264,7 @@ internal fun GameDetailScreen(
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
-                    vm.delete()
+                    viewModel.delete()
                 }) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {

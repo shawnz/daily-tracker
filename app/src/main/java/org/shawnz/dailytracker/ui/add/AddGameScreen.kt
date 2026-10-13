@@ -55,12 +55,12 @@ internal fun AddGameScreen(
     onCreateCustom: () -> Unit,
     onAdded: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: AddGameViewModel = hiltViewModel(),
 ) {
-    val vm: AddGameViewModel = hiltViewModel()
-    val available by vm.available.collectAsStateWithLifecycle()
-    val added by vm.added.collectAsStateWithLifecycle()
+    val available by viewModel.available.collectAsStateWithLifecycle()
+    val added by viewModel.added.collectAsStateWithLifecycle()
     LaunchedEffect(added) { if (added) onAdded() }
-    val archivedGames by vm.archived.collectAsStateWithLifecycle()
+    val archivedGames by viewModel.archived.collectAsStateWithLifecycle()
 
     var query by rememberSaveable { mutableStateOf("") }
     val archived = remember(archivedGames, query) { searchGames(archivedGames.orEmpty(), query) }
@@ -150,7 +150,7 @@ internal fun AddGameScreen(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .clickable { vm.restore(game) },
+                                    .clickable { viewModel.restore(game) },
                         ) {
                             Column(Modifier.padding(16.dp)) {
                                 Row2(
@@ -196,7 +196,7 @@ internal fun AddGameScreen(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .clickable { vm.add(catalogGame) },
+                                        .clickable { viewModel.add(catalogGame) },
                             ) {
                                 Column(Modifier.padding(16.dp)) {
                                     Row2(

@@ -36,9 +36,9 @@ import org.shawnz.dailytracker.ui.games.GameModule
 internal fun StatsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: StatsViewModel = hiltViewModel(),
 ) {
-    val vm: StatsViewModel = hiltViewModel()
-    val state by vm.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,

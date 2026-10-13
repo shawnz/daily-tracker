@@ -78,9 +78,9 @@ internal fun TodayScreen(
     onStats: () -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: TodayViewModel = hiltViewModel(),
 ) {
-    val vm: TodayViewModel = hiltViewModel()
-    val today = vm.state.collectAsStateWithLifecycle().value
+    val today = viewModel.state.collectAsStateWithLifecycle().value
     val context = LocalContext.current
     val resources = LocalResources.current
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()

@@ -86,10 +86,10 @@ private val ButtonInset = 12.dp
 internal fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
-    val vm: SettingsViewModel = hiltViewModel()
-    val settings by vm.reminder.collectAsStateWithLifecycle()
+    val settings by viewModel.reminder.collectAsStateWithLifecycle()
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
     val versionName =
         remember {
@@ -155,7 +155,7 @@ internal fun SettingsScreen(
                 Switch(
                     checked = enabled,
                     onCheckedChange = {
-                        vm.setEnabled(it)
+                        viewModel.setEnabled(it)
                         if (it && !allowed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             askForPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
@@ -170,7 +170,7 @@ internal fun SettingsScreen(
                 ReminderTimeDialog(
                     time = reminder.time,
                     onPick = {
-                        vm.pickTime(it)
+                        viewModel.pickTime(it)
                         pickingTime = false
                     },
                     onDismiss = { pickingTime = false },
@@ -186,7 +186,7 @@ internal fun SettingsScreen(
                     body = stringResource(R.string.settings_reminder_fixed_body),
                     selected = fixedTime,
                     enabled = enabled,
-                    onClick = { vm.setMode(ReminderMode.FIXED_TIME) },
+                    onClick = { viewModel.setMode(ReminderMode.FIXED_TIME) },
                 ) {
                     TextButton(onClick = { pickingTime = true }, enabled = enabled) {
                         Text(stringResource(R.string.action_edit))
@@ -197,10 +197,10 @@ internal fun SettingsScreen(
                     body = stringResource(R.string.settings_reminder_before_reset_body),
                     selected = !fixedTime,
                     enabled = enabled,
-                    onClick = { vm.setMode(ReminderMode.BEFORE_RESET) },
+                    onClick = { viewModel.setMode(ReminderMode.BEFORE_RESET) },
                 ) {
                     IconButton(
-                        onClick = { shorter?.let(vm::pickLeadTime) },
+                        onClick = { shorter?.let(viewModel::pickLeadTime) },
                         enabled = enabled && shorter != null,
                     ) {
                         Icon(
@@ -209,7 +209,7 @@ internal fun SettingsScreen(
                         )
                     }
                     IconButton(
-                        onClick = { longer?.let(vm::pickLeadTime) },
+                        onClick = { longer?.let(viewModel::pickLeadTime) },
                         enabled = enabled && longer != null,
                     ) {
                         Icon(

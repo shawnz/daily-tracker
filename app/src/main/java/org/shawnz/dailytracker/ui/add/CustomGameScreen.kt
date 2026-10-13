@@ -54,10 +54,10 @@ internal fun CustomGameScreen(
     onBack: () -> Unit,
     onAdded: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: CustomGameViewModel = hiltViewModel(),
 ) {
-    val vm: CustomGameViewModel = hiltViewModel()
-    val games by vm.games.collectAsStateWithLifecycle()
-    val added by vm.added.collectAsStateWithLifecycle()
+    val games by viewModel.games.collectAsStateWithLifecycle()
+    val added by viewModel.added.collectAsStateWithLifecycle()
     LaunchedEffect(added) { if (added) onAdded() }
     var title by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
@@ -86,11 +86,11 @@ internal fun CustomGameScreen(
             urlValidated = true
         } else {
             when (match) {
-                null -> vm.addCustom(title, url)
+                null -> viewModel.addCustom(title, url)
 
-                is UrlMatch.Archived -> vm.restore(match.game)
+                is UrlMatch.Archived -> viewModel.restore(match.game)
 
-                is UrlMatch.Known -> vm.addFromCatalog(match.catalogGame)
+                is UrlMatch.Known -> viewModel.addFromCatalog(match.catalogGame)
 
                 // Already tracked, so the button only closes the screen.
                 is UrlMatch.Tracked -> onAdded()

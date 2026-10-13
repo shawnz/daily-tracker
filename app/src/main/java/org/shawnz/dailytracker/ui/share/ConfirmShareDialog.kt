@@ -40,10 +40,10 @@ fun ConfirmShareDialog(
     sharedText: String,
     matchedGameId: Long?,
     onDone: () -> Unit,
+    viewModel: ConfirmShareViewModel = hiltViewModel(),
 ) {
-    val vm: ConfirmShareViewModel = hiltViewModel()
-    val state by vm.state.collectAsStateWithLifecycle()
-    val saved by vm.saved.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val saved by viewModel.saved.collectAsStateWithLifecycle()
     LaunchedEffect(saved) { if (saved) onDone() }
 
     // Nothing is drawn until the games have loaded. [ReceiveShareActivity] only opens this when
@@ -80,7 +80,7 @@ fun ConfirmShareDialog(
                         sharedText = sharedText,
                         games = available,
                         onPick = {
-                            vm.pickGame(it)
+                            viewModel.pickGame(it)
                             pane = Pane.Form
                         },
                     )
@@ -93,7 +93,7 @@ fun ConfirmShareDialog(
                             last = game.lastPuzzleDay(),
                             playedDays = state.playedDays,
                             onPick = {
-                                vm.pickDay(it)
+                                viewModel.pickDay(it)
                                 pane = Pane.Form
                             },
                         )
@@ -119,7 +119,7 @@ fun ConfirmShareDialog(
             when (pane) {
                 Pane.Form -> {
                     if (game != null && day != null) {
-                        TextButton(onClick = { vm.save(game, day) }) {
+                        TextButton(onClick = { viewModel.save(game, day) }) {
                             Text(stringResource(R.string.share_confirm_save))
                         }
                     }
@@ -129,7 +129,7 @@ fun ConfirmShareDialog(
                     if (game != null && day != null) {
                         TextButton(
                             onClick = {
-                                vm.pickDay(game.currentPuzzleDay())
+                                viewModel.pickDay(game.currentPuzzleDay())
                                 pane = Pane.Form
                             },
                             enabled = day != game.currentPuzzleDay(),
