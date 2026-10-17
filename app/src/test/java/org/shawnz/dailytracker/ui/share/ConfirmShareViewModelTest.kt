@@ -36,7 +36,7 @@ class ConfirmShareViewModelTest {
 
     private val wordle = testGame(id = 1)
     private val other = testGame(id = 2)
-    private val today = wordle.possiblePuzzleDays(rolloverObserved = false).start
+    private val today = wordle.possiblePuzzleDays(entries = emptyList()).start
 
     private fun viewModel(
         repo: FakeRepository,
@@ -98,7 +98,7 @@ class ConfirmShareViewModelTest {
     fun `a shared result for the latest possible puzzle day is kept on that day`() =
         runTest(dispatcher) {
             val raddle = testGame(id = 3, source = CatalogGame.RADDLE)
-            val last = raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive
+            val last = raddle.possiblePuzzleDays(entries = emptyList()).endInclusive
             val vm =
                 viewModel(
                     FakeRepository(games = listOf(raddle)),
@@ -115,11 +115,11 @@ class ConfirmShareViewModelTest {
     fun `a shared result after the latest possible puzzle day is filed on the earliest`() =
         runTest(dispatcher) {
             val raddle = testGame(id = 3, source = CatalogGame.RADDLE)
-            val current = raddle.possiblePuzzleDays(rolloverObserved = false).start
+            val current = raddle.possiblePuzzleDays(entries = emptyList()).start
             val vm =
                 viewModel(
                     FakeRepository(games = listOf(raddle)),
-                    sharedText = raddleText(raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive.plusDays(1)),
+                    sharedText = raddleText(raddle.possiblePuzzleDays(entries = emptyList()).endInclusive.plusDays(1)),
                     matchedGameId = raddle.id,
                 )
 

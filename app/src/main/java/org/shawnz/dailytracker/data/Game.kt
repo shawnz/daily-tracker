@@ -3,9 +3,9 @@ package org.shawnz.dailytracker.data
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.parse.ResultParser
 import org.shawnz.dailytracker.time.RolloverRule
-import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZonedDateTime
 
 /** A game's details, whether from the catalog or typed by the user. */
 interface GameSource {
@@ -41,21 +41,23 @@ data class Game(
 
     val rolloverRule: RolloverRule get() = catalogGame?.rolloverRule ?: RolloverRule.DEFAULT
 
-    fun possiblePuzzleDays(rolloverObserved: Boolean): ClosedRange<LocalDate> = rolloverRule.possiblePuzzleDays(rolloverObserved)
-
     /**
-     * Returns whether [entries] contains a result of this game for the day after the date in its
-     * rule's zone. Such a result is evidence that the next puzzle is out.
+     * Returns the range of days the puzzle day can be at [now]. A result of this game in [entries]
+     * is evidence that the puzzle for its day is out, so the range starts no earlier than the
+     * latest such day.
      */
-    fun rolloverObserved(entries: List<EntryEntity>): Boolean {
-        if (rolloverRule.time != null) return false
-        val nextDay = possiblePuzzleDays(rolloverObserved = false).endInclusive
-        return entries.any { it.gameId == id && it.puzzleDay == nextDay }
+    fun possiblePuzzleDays(
+        entries: List<EntryEntity>,
+        now: ZonedDateTime = ZonedDateTime.now(),
+    ): ClosedRange<LocalDate> {
+        val possible = rolloverRule.possiblePuzzleDays(now)
+        val lastPlayed = entries.filter { it.gameId == id && it.puzzleDay in possible }.maxOfOrNull { it.puzzleDay }
+        return (lastPlayed ?: possible.start)..possible.endInclusive
     }
 
     fun nextRollover(): Instant? = rolloverRule.nextRollover()
 
-    fun nextPossiblePuzzleDaysChange(clock: Clock = Clock.systemDefaultZone()): Instant = rolloverRule.nextPossiblePuzzleDaysChange(clock)
+    fun nextPossiblePuzzleDaysChange(now: ZonedDateTime = ZonedDateTime.now()): Instant = rolloverRule.nextPossiblePuzzleDaysChange(now)
 }
 
 /** Fails on a row with neither a catalog game nor a title and URL. */

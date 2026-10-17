@@ -156,14 +156,14 @@ class GameDetailViewModelTest {
                 runCurrent()
             }
 
-            assertEquals(raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive, vm.state.value.selectedDay)
+            assertEquals(raddle.possiblePuzzleDays(entries = emptyList()).endInclusive, vm.state.value.selectedDay)
         }
 
     @Test
     fun `a game with an unknown rollover time and a result for its latest possible day opens on that day`() =
         runTest(dispatcher) {
             val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
-            val last = raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive
+            val last = raddle.possiblePuzzleDays(entries = emptyList()).endInclusive
             val entry = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = last)
             val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(entry)))
 

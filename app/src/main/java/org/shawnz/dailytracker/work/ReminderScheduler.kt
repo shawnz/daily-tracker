@@ -16,9 +16,9 @@ import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.ReminderSettings
 import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.SettingsRepository
-import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.ZonedDateTime
 import javax.inject.Inject
 
 private const val WORK_NAME = "reminder"
@@ -49,8 +49,7 @@ class ReminderScheduler
                 combine(settings.reminder, repository.observeActiveGames(), ::Pair)
                     .distinctUntilChanged()
                     .collectIndexed { index, (reminder, games) ->
-                        val clock = Clock.systemDefaultZone()
-                        val next = nextReminder(reminder, games, clock.instant(), clock.zone)
+                        val next = nextReminder(reminder, games, ZonedDateTime.now())
                         if (next == null) {
                             manager.cancelUniqueWork(WORK_NAME)
                         } else {
@@ -70,9 +69,8 @@ class ReminderScheduler
             reminder: ReminderSettings,
             games: List<Game>,
         ) {
-            val clock = Clock.systemDefaultZone()
-            val after = includedUntil(reminder, clock.instant())
-            val next = nextReminder(reminder, games, after, clock.zone) ?: return
+            val after = includedUntil(reminder, ZonedDateTime.now())
+            val next = nextReminder(reminder, games, after) ?: return
             // REPLACE would cancel the worker that is running.
             enqueue(next, ExistingWorkPolicy.APPEND_OR_REPLACE)
         }

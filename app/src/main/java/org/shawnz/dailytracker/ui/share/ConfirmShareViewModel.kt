@@ -90,7 +90,7 @@ class ConfirmShareViewModel
                 entries,
             ) { games, id, chosen, rows ->
                 val game = games.firstOrNull { it.id == id }
-                val possible = game?.let { it.possiblePuzzleDays(it.rolloverObserved(rows)) }
+                val possible = game?.possiblePuzzleDays(rows)
                 ConfirmShareState(
                     games = games,
                     game = game,

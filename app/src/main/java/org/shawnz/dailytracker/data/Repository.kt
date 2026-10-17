@@ -172,14 +172,6 @@ class DefaultRepository
         override suspend fun deleteEntry(entry: EntryEntity) = entryDao.delete(entry)
     }
 
-/**
- * Returns whether a result is stored for [game] on the day after the date in its rule's zone.
- * Such a result is evidence that the next puzzle is out.
- */
-suspend fun Repository.rolloverObserved(game: Game): Boolean =
-    game.rolloverRule.time == null &&
-        entryFor(game, game.possiblePuzzleDays(rolloverObserved = false).endInclusive) != null
-
 /** Sorts by [Game.sortOrder], then by [Game.title] (stored only for a user-made game). */
 private fun List<Game>.inListOrder(): List<Game> =
     sortedWith(

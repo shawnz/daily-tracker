@@ -82,7 +82,7 @@ class ReminderWorkerTest {
         EntryEntity(
             id = 1,
             gameId = game.id,
-            puzzleDay = game.possiblePuzzleDays(rolloverObserved = false).start,
+            puzzleDay = game.possiblePuzzleDays(entries = emptyList()).start,
         )
 
     @Test
@@ -119,7 +119,7 @@ class ReminderWorkerTest {
     fun `no reminder is shown for a game with a result for its latest possible day`() {
         allowNotifications()
         val raddle = testGame(id = 2, source = CatalogGame.RADDLE)
-        val last = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive)
+        val last = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = raddle.possiblePuzzleDays(entries = emptyList()).endInclusive)
 
         val result = run(FakeRepository(games = listOf(raddle), entries = listOf(last)))
 

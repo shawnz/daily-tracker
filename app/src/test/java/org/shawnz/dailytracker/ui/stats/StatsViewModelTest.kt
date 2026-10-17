@@ -30,7 +30,7 @@ class StatsViewModelTest {
 
     private val steady = testGame(id = 1)
     private val newcomer = testGame(id = 2)
-    private val today = steady.possiblePuzzleDays(rolloverObserved = false).start
+    private val today = steady.possiblePuzzleDays(entries = emptyList()).start
 
     private fun entry(
         id: Long,

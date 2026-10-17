@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -23,7 +24,7 @@ import org.shawnz.dailytracker.data.GameProgress
 import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.dayChanges
 import org.shawnz.dailytracker.data.gameProgress
-import org.shawnz.dailytracker.data.rolloverObserved
+import org.shawnz.dailytracker.time.earliestDateAnywhere
 import org.shawnz.dailytracker.ui.STOP_TIMEOUT_MILLIS
 import java.time.LocalDate
 
@@ -79,7 +80,8 @@ class GameDetailViewModel
         init {
             viewModelScope.launch {
                 val game = repo.getGame(gameId) ?: return@launch
-                chosenDay.compareAndSet(null, game.possiblePuzzleDays(repo.rolloverObserved(game)).start)
+                val recent = repo.observeRecentEntries(earliestDateAnywhere()).first()
+                chosenDay.compareAndSet(null, game.possiblePuzzleDays(recent).start)
             }
         }
 
@@ -172,7 +174,7 @@ private fun detailState(
     entries: List<EntryEntity>,
     chosen: LocalDate?,
 ): DetailState {
-    val possible = game?.let { it.possiblePuzzleDays(it.rolloverObserved(entries)) }
+    val possible = game?.possiblePuzzleDays(entries)
     val day = chosen ?: possible?.start
     return DetailState(
         game = game,

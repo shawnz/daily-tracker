@@ -19,8 +19,8 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.SettingsRepository
-import org.shawnz.dailytracker.data.rolloverObserved
-import java.time.Clock
+import org.shawnz.dailytracker.time.earliestDateAnywhere
+import java.time.ZonedDateTime
 
 const val REMINDER_CHANNEL_ID = "daily-reminders"
 private const val NOTIFICATION_ID = 1
@@ -43,10 +43,13 @@ class ReminderWorker
             val reminder = settings.reminder.first()
             val games = repo.activeGames()
 
+            val recent = repo.observeRecentEntries(earliestDateAnywhere()).first()
+            val now = ZonedDateTime.now()
             val outstanding =
-                gamesToRemind(reminder, games, Clock.systemDefaultZone())
-                    .filter {
-                        repo.entryFor(it, it.possiblePuzzleDays(repo.rolloverObserved(it)).start) == null
+                gamesToRemind(reminder, games, now)
+                    .filter { game ->
+                        val day = game.possiblePuzzleDays(recent, now).start
+                        recent.none { it.gameId == game.id && it.puzzleDay == day }
                     }
             if (outstanding.isNotEmpty()) post(outstanding)
 

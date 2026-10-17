@@ -1,9 +1,7 @@
 package org.shawnz.dailytracker.time
 
-import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -24,6 +22,8 @@ sealed interface RolloverZone {
 /**
  * The puzzle day of a game is the date in [zone]. From [time] until midnight, it is the day after.
  *
+ * `now` is the current time in the device's zone.
+ *
  * @property zone The zone of [time] and of the date.
  * @property time The time of day of the change, or null if the next puzzle is published at no
  *   fixed hour. With [LocalTime.MIDNIGHT], the puzzle day is always the date.
@@ -33,39 +33,32 @@ data class RolloverRule(
     val time: LocalTime?,
 ) {
     /**
-     * Returns the range of days the puzzle day can be at the time of [clock].
+     * Returns the range of days the puzzle day can be at [now].
      *
      * With a known [time], the range is one day. With an unknown time, it is the date in [zone] and
-     * the day after, or only the day after if [rolloverObserved].
+     * the day after.
      */
-    fun possiblePuzzleDays(
-        rolloverObserved: Boolean,
-        clock: Clock = Clock.systemDefaultZone(),
-    ): ClosedRange<LocalDate> {
-        val now = LocalDateTime.now(clock.withZone(zoneId(clock)))
-        val date = now.toLocalDate()
-        if (time == null) {
-            val nextDay = date.plusDays(1)
-            return if (rolloverObserved) nextDay..nextDay else date..nextDay
-        }
-        val nextDay = time != LocalTime.MIDNIGHT && !now.toLocalTime().isBefore(time)
+    fun possiblePuzzleDays(now: ZonedDateTime = ZonedDateTime.now()): ClosedRange<LocalDate> {
+        val local = inZone(now).toLocalDateTime()
+        val date = local.toLocalDate()
+        if (time == null) return date..date.plusDays(1)
+        val nextDay = time != LocalTime.MIDNIGHT && !local.toLocalTime().isBefore(time)
         val day = if (nextDay) date.plusDays(1) else date
         return day..day
     }
 
-    fun nextRollover(clock: Clock = Clock.systemDefaultZone()): Instant? = time?.let { nextAt(zoneId(clock), it, clock) }
+    fun nextRollover(now: ZonedDateTime = ZonedDateTime.now()): Instant? = time?.let { inZone(now).nextAt(it) }
 
     /**
      * Returns the next instant at which [possiblePuzzleDays] changes without a new result: [time] in
      * [zone], or midnight in [zone] if [time] is null.
      */
-    fun nextPossiblePuzzleDaysChange(clock: Clock = Clock.systemDefaultZone()): Instant =
-        nextAt(zoneId(clock), time ?: LocalTime.MIDNIGHT, clock)
+    fun nextPossiblePuzzleDaysChange(now: ZonedDateTime = ZonedDateTime.now()): Instant = inZone(now).nextAt(time ?: LocalTime.MIDNIGHT)
 
-    private fun zoneId(clock: Clock): ZoneId =
+    private fun inZone(now: ZonedDateTime): ZonedDateTime =
         when (zone) {
-            RolloverZone.Device -> clock.zone
-            is RolloverZone.Named -> zone.id
+            RolloverZone.Device -> now
+            is RolloverZone.Named -> now.withZoneSameInstant(zone.id)
         }
 
     companion object {
@@ -79,16 +72,8 @@ data class RolloverRule(
     }
 }
 
-/** The next instant at which the time of day in [zone] is [time]. */
-internal fun nextAt(
-    zone: ZoneId,
-    time: LocalTime,
-    clock: Clock,
-): Instant {
-    val now = clock.instant()
-    val today = now.atZone(zone).toLocalDate()
-    val next =
-        ZonedDateTime.of(today, time, zone).takeIf { it.toInstant().isAfter(now) }
-            ?: ZonedDateTime.of(today.plusDays(1), time, zone)
-    return next.toInstant()
+/** The first instant after this date-time at which the time of day in its zone is [time]. */
+internal fun ZonedDateTime.nextAt(time: LocalTime): Instant {
+    val today = with(time)
+    return (if (today.isAfter(this)) today else plusDays(1).with(time)).toInstant()
 }

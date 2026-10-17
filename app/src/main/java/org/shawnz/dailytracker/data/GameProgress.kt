@@ -36,28 +36,28 @@ fun gameProgress(
         entries.minOfOrNull { it.puzzleDay }
             ?: return GameProgress(plays = 0, streak = 0, playedInWindow = 0, possibleInWindow = 0)
 
-    val today = game.possiblePuzzleDays(game.rolloverObserved(entries)).start
+    val today = game.possiblePuzzleDays(entries).start
     val start = windowStart(today, earliest)
     return GameProgress(
         plays = entries.size,
-        streak = streak(game, entries),
+        streak = streak(today, entries),
         playedInWindow = entries.count { it.puzzleDay in start..today },
         possibleInWindow = ChronoUnit.DAYS.between(start, today).toInt() + 1,
     )
 }
 
 /**
- * The number of consecutive days with an entry in [entries], counting back from [game]'s
- * current puzzle day.
+ * The number of consecutive days up to the current puzzle day [today] that have an entry in
+ * [entries].
  *
  * Counting may start at the day before, because the current day is not over yet.
  */
 private fun streak(
-    game: Game,
+    today: LocalDate,
     entries: List<EntryEntity>,
 ): Int {
     val days = entries.mapTo(HashSet()) { it.puzzleDay }
-    var day = game.possiblePuzzleDays(game.rolloverObserved(entries)).start
+    var day = today
     if (day !in days) day = day.minusDays(1)
     var count = 0
     while (day in days) {
