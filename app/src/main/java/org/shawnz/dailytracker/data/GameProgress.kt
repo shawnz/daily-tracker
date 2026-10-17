@@ -36,7 +36,7 @@ fun gameProgress(
         entries.minOfOrNull { it.puzzleDay }
             ?: return GameProgress(plays = 0, streak = 0, playedInWindow = 0, possibleInWindow = 0)
 
-    val today = game.currentPuzzleDay()
+    val today = game.possiblePuzzleDays(game.rolloverObserved(entries)).start
     val start = windowStart(today, earliest)
     return GameProgress(
         plays = entries.size,
@@ -57,7 +57,7 @@ private fun streak(
     entries: List<EntryEntity>,
 ): Int {
     val days = entries.mapTo(HashSet()) { it.puzzleDay }
-    var day = game.currentPuzzleDay()
+    var day = game.possiblePuzzleDays(game.rolloverObserved(entries)).start
     if (day !in days) day = day.minusDays(1)
     var count = 0
     while (day in days) {

@@ -41,7 +41,7 @@ class ReceiveShareActivity : ComponentActivity() {
                     game.parser
                         ?.parse(text)
                         ?.day
-                        ?.takeIf { !it.isAfter(game.lastPuzzleDay()) }
+                        ?.takeIf { !it.isAfter(game.possiblePuzzleDays(rolloverObserved = false).endInclusive) }
                 }
             val existing = if (match != null && day != null) repo.entryFor(match, day) else null
 

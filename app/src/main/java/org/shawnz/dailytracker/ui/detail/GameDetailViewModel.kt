@@ -23,6 +23,7 @@ import org.shawnz.dailytracker.data.GameProgress
 import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.dayChanges
 import org.shawnz.dailytracker.data.gameProgress
+import org.shawnz.dailytracker.data.rolloverObserved
 import org.shawnz.dailytracker.ui.STOP_TIMEOUT_MILLIS
 import java.time.LocalDate
 
@@ -33,7 +34,9 @@ import java.time.LocalDate
  *   depends on it. Null until the game loads.
  * @property playedDays Every puzzle day with an entry. Highlighted in the day picker.
  * @property entries All of this game's entries, for its aggregate figures.
- * @property lastPuzzleDay The last selectable day.
+ * @property possiblePuzzleDays Null until the game is loaded. The start is the day selected with
+ *   the "Latest" button. The end is the last day that can be reached with the forward arrow or
+ *   the day picker.
  */
 data class DetailState(
     val game: Game? = null,
@@ -42,14 +45,16 @@ data class DetailState(
     val playedDays: Set<LocalDate> = emptySet(),
     val entries: List<EntryEntity> = emptyList(),
     val progress: GameProgress? = null,
-    val currentPuzzleDay: LocalDate? = null,
-    val lastPuzzleDay: LocalDate? = null,
+    val possiblePuzzleDays: ClosedRange<LocalDate>? = null,
     val currentDeviceDay: LocalDate? = null,
 ) {
     val isToday: Boolean get() = selectedDay != null && selectedDay == currentDeviceDay
 
     val canGoForward: Boolean
-        get() = selectedDay != null && lastPuzzleDay != null && selectedDay < lastPuzzleDay
+        get() {
+            val last = possiblePuzzleDays?.endInclusive
+            return selectedDay != null && last != null && selectedDay < last
+        }
 }
 
 @HiltViewModel(assistedFactory = GameDetailViewModel.Factory::class)
@@ -65,15 +70,16 @@ class GameDetailViewModel
         }
 
         /**
-         * The day shown on the day card. Null until the game has loaded, then that game's
-         * current puzzle day. A rollover changes [DetailState.currentPuzzleDay] but not this, so
-         * the card stays on the day the user chose.
+         * The day on the day card, or null until the game is loaded. It is first set to the start
+         * of the possible puzzle days. After that it is changed only by the user, so the card
+         * stays on the chosen day when the possible days change.
          */
         private val chosenDay = MutableStateFlow<LocalDate?>(null)
 
         init {
             viewModelScope.launch {
-                repo.getGame(gameId)?.let { chosenDay.compareAndSet(null, it.currentPuzzleDay()) }
+                val game = repo.getGame(gameId) ?: return@launch
+                chosenDay.compareAndSet(null, game.possiblePuzzleDays(repo.rolloverObserved(game)).start)
             }
         }
 
@@ -104,7 +110,7 @@ class GameDetailViewModel
         }
 
         /**
-         * Moves by [days], never past the last puzzle day.
+         * Moves by [days], never past the latest possible puzzle day.
          *
          * There is no earliest day, because a game may have been played for years before it was
          * added here.
@@ -166,8 +172,8 @@ private fun detailState(
     entries: List<EntryEntity>,
     chosen: LocalDate?,
 ): DetailState {
-    val current = game?.currentPuzzleDay()
-    val day = chosen ?: current
+    val possible = game?.let { it.possiblePuzzleDays(it.rolloverObserved(entries)) }
+    val day = chosen ?: possible?.start
     return DetailState(
         game = game,
         selectedDay = day,
@@ -175,8 +181,7 @@ private fun detailState(
         playedDays = entries.mapTo(HashSet()) { it.puzzleDay },
         entries = entries,
         progress = game?.let { gameProgress(it, entries) },
-        currentPuzzleDay = current,
-        lastPuzzleDay = game?.lastPuzzleDay(),
+        possiblePuzzleDays = possible,
         currentDeviceDay = LocalDate.now(),
     )
 }

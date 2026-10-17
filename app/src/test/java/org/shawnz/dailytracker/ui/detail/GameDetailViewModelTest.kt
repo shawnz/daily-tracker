@@ -144,19 +144,33 @@ class GameDetailViewModelTest {
         }
 
     @Test
-    fun `the stepper of an unscheduled game stops a day after the current puzzle day`() =
+    fun `with an unknown rollover time, the stepper stops at the latest possible puzzle day`() =
         runTest(dispatcher) {
             val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
             val vm = viewModel(FakeRepository(games = listOf(raddle)))
             backgroundScope.launch { vm.state.collect {} }
-            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+            vm.state.first { it.selectedDay != null }
 
-            vm.stepDay(1)
-            runCurrent()
-            vm.stepDay(1)
-            runCurrent()
+            repeat(3) {
+                vm.stepDay(1)
+                runCurrent()
+            }
 
-            assertEquals(day.plusDays(1), vm.state.value.selectedDay)
+            assertEquals(raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive, vm.state.value.selectedDay)
+        }
+
+    @Test
+    fun `a game with an unknown rollover time and a result for its latest possible day opens on that day`() =
+        runTest(dispatcher) {
+            val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
+            val last = raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive
+            val entry = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = last)
+            val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(entry)))
+
+            val state = vm.state.first { it.selectedDay != null }
+
+            assertEquals(last, state.selectedDay)
+            assertEquals(entry, state.selectedEntry)
         }
 
     @Test

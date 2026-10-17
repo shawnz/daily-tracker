@@ -3,7 +3,7 @@ package org.shawnz.dailytracker.work
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.ReminderMode
 import org.shawnz.dailytracker.data.ReminderSettings
-import org.shawnz.dailytracker.data.nextAt
+import org.shawnz.dailytracker.time.nextAt
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -16,12 +16,12 @@ import java.time.ZoneId
 val BATCH_WINDOW: Duration = Duration.ofHours(1)
 
 /**
- * The first reminder time after [after], or null when there is none.
+ * Returns the first reminder time after [after], or null if there is none.
  *
- * With [ReminderMode.FIXED_TIME], the reminder time is [ReminderSettings.time] each day. With
- * [ReminderMode.BEFORE_RESET], each game in [games] has its own reminder time, which is
- * [ReminderSettings.leadTime] before its puzzle day changes. A game with no known rollover time
- * has the device date as its puzzle day, which changes at midnight in [zone].
+ * With [ReminderMode.FIXED_TIME], a reminder is due at [ReminderSettings.time] each day in [zone].
+ * With [ReminderMode.BEFORE_RESET], each game in [games] with reminders on has a reminder
+ * [ReminderSettings.leadTime] before the next change of its possible puzzle days. [zone] is the
+ * device's zone, and is also the zone of a game with the default rule.
  */
 fun nextReminder(
     settings: ReminderSettings,
@@ -51,7 +51,7 @@ private fun reminderTimeAfter(
     zone: ZoneId,
 ): Instant {
     // The puzzle day change for that reminder time is more than the lead time after [after].
-    val dayChange = game.nextPuzzleDayChange(Clock.fixed(after.plus(leadTime), zone))
+    val dayChange = game.nextPossiblePuzzleDaysChange(Clock.fixed(after.plus(leadTime), zone))
     return dayChange.minus(leadTime)
 }
 
@@ -88,7 +88,7 @@ fun gamesToRemind(
 
         ReminderMode.BEFORE_RESET -> {
             reminded.filter {
-                val timeLeft = Duration.between(clock.instant(), it.nextPuzzleDayChange(clock))
+                val timeLeft = Duration.between(clock.instant(), it.nextPossiblePuzzleDaysChange(clock))
                 timeLeft <= settings.leadTime.plus(BATCH_WINDOW)
             }
         }

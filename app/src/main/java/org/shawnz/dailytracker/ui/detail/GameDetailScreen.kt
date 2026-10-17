@@ -240,13 +240,12 @@ internal fun GameDetailScreen(
     }
 
     val pickSelected = state.selectedDay
-    val pickLatest = state.currentPuzzleDay
-    val pickLast = state.lastPuzzleDay
-    if (pickingDay && pickSelected != null && pickLatest != null && pickLast != null) {
+    val pickPossible = state.possiblePuzzleDays
+    if (pickingDay && pickSelected != null && pickPossible != null) {
         DayPickerDialog(
             selected = pickSelected,
-            latest = pickLatest,
-            last = pickLast,
+            latest = pickPossible.start,
+            last = pickPossible.endInclusive,
             playedDays = state.playedDays,
             onPick = {
                 pickingDay = false

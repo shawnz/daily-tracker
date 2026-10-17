@@ -87,10 +87,11 @@ fun ConfirmShareDialog(
                 }
 
                 Pane.Day -> {
-                    if (game != null && day != null) {
+                    val possible = state.possiblePuzzleDays
+                    if (possible != null && day != null) {
                         DayPickerContent(
                             selected = day,
-                            last = game.lastPuzzleDay(),
+                            last = possible.endInclusive,
                             playedDays = state.playedDays,
                             onPick = {
                                 viewModel.pickDay(it)
@@ -126,13 +127,14 @@ fun ConfirmShareDialog(
                 }
 
                 Pane.Day -> {
-                    if (game != null && day != null) {
+                    val current = state.possiblePuzzleDays?.start
+                    if (current != null && day != null) {
                         TextButton(
                             onClick = {
-                                viewModel.pickDay(game.currentPuzzleDay())
+                                viewModel.pickDay(current)
                                 pane = Pane.Form
                             },
-                            enabled = day != game.currentPuzzleDay(),
+                            enabled = day != current,
                         ) { Text(stringResource(R.string.detail_latest)) }
                     }
                 }

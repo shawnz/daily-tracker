@@ -6,8 +6,8 @@ import org.shawnz.dailytracker.testdoubles.testGame
 import java.time.LocalDate
 
 /**
- * These games use `LOCAL_MIDNIGHT`, so the current puzzle day is the device date. The
- * helpers below count back from it.
+ * These games roll over at midnight in the device's zone, so the current puzzle day is the
+ * device date. `daysAgo` counts backward from that day.
  */
 class GameProgressTest {
     /** An entry for the puzzle day [daysAgo] days before today. */

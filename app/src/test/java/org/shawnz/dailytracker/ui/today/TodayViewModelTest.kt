@@ -33,7 +33,7 @@ class TodayViewModelTest {
         EntryEntity(
             id = 1,
             gameId = wordle.id,
-            puzzleDay = wordle.currentPuzzleDay(),
+            puzzleDay = wordle.possiblePuzzleDays(rolloverObserved = false).start,
         )
 
     @Test
@@ -65,13 +65,25 @@ class TodayViewModelTest {
         runTest(dispatcher) {
             val yesterday =
                 entryToday().copy(
-                    puzzleDay = wordle.currentPuzzleDay().minusDays(1),
+                    puzzleDay = wordle.possiblePuzzleDays(rolloverObserved = false).start.minusDays(1),
                 )
             val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(yesterday)))
 
             val state = vm.state.first { it != null }!!
 
             assertFalse(state.rows.single().done)
+        }
+
+    @Test
+    fun `a game with an unknown rollover time and a result for its latest possible day is done`() =
+        runTest(dispatcher) {
+            val raddle = testGame(id = 2, source = CatalogGame.RADDLE)
+            val last = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive)
+            val vm = TodayViewModel(FakeRepository(listOf(raddle), listOf(last)))
+
+            val state = vm.state.first { it != null }!!
+
+            assertEquals(last, state.rows.single().entry)
         }
 
     @Test

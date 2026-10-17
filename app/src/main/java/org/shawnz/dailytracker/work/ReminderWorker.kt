@@ -19,6 +19,7 @@ import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.SettingsRepository
+import org.shawnz.dailytracker.data.rolloverObserved
 import java.time.Clock
 
 const val REMINDER_CHANNEL_ID = "daily-reminders"
@@ -44,7 +45,9 @@ class ReminderWorker
 
             val outstanding =
                 gamesToRemind(reminder, games, Clock.systemDefaultZone())
-                    .filter { repo.entryFor(it) == null }
+                    .filter {
+                        repo.entryFor(it, it.possiblePuzzleDays(repo.rolloverObserved(it)).start) == null
+                    }
             if (outstanding.isNotEmpty()) post(outstanding)
 
             scheduler.scheduleNext(reminder, games)

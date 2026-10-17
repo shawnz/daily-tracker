@@ -27,6 +27,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Repository
+import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.FakeSettingsRepository
 import org.shawnz.dailytracker.testdoubles.testGame
@@ -81,7 +82,7 @@ class ReminderWorkerTest {
         EntryEntity(
             id = 1,
             gameId = game.id,
-            puzzleDay = game.currentPuzzleDay(),
+            puzzleDay = game.possiblePuzzleDays(rolloverObserved = false).start,
         )
 
     @Test
@@ -104,7 +105,7 @@ class ReminderWorkerTest {
     }
 
     @Test
-    fun `nothing is said when every game has been played`() {
+    fun `no reminder is shown when every game has been played`() {
         allowNotifications()
 
         val repo = FakeRepository(games = listOf(game), entries = listOf(playedToday()))
@@ -115,7 +116,19 @@ class ReminderWorkerTest {
     }
 
     @Test
-    fun `nothing is said when no games are tracked`() {
+    fun `no reminder is shown for a game with a result for its latest possible day`() {
+        allowNotifications()
+        val raddle = testGame(id = 2, source = CatalogGame.RADDLE)
+        val last = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive)
+
+        val result = run(FakeRepository(games = listOf(raddle), entries = listOf(last)))
+
+        assertTrue(result is ListenableWorker.Result.Success)
+        assertEquals(0, postedNotifications())
+    }
+
+    @Test
+    fun `no reminder is shown when no games are tracked`() {
         allowNotifications()
 
         val result = run(FakeRepository())
@@ -138,7 +151,7 @@ class ReminderWorkerTest {
 
     // Reminders can be on while the system permission is refused, and the work still succeeds.
     @Test
-    fun `nothing is posted without permission`() {
+    fun `no reminder is shown without permission`() {
         shadowOf(app).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
 
         val result = run(FakeRepository(games = listOf(game)))

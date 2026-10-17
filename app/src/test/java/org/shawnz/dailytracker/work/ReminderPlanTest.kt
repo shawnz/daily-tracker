@@ -26,7 +26,7 @@ class ReminderPlanTest {
     private val localMidnight = testGame(id = 1, source = CatalogGame.WORDLE)
     private val utcMidnight = testGame(id = 2, source = CatalogGame.FOODGUESSR)
     private val fixedOffset = testGame(id = 3, source = CatalogGame.KINDA_HARD_GOLF)
-    private val unscheduled = testGame(id = 4, source = CustomGame("My Game", "https://example.com"))
+    private val userGame = testGame(id = 4, source = CustomGame("My Game", "https://example.com"))
 
     private val fixedTime = ReminderSettings(time = LocalTime.of(20, 0))
 
@@ -83,8 +83,8 @@ class ReminderPlanTest {
     }
 
     @Test
-    fun `an unscheduled game is reminded before midnight on the device`() {
-        val next = nextReminder(beforeReset(4), listOf(unscheduled), at("2026-01-15T12:00"), zone)
+    fun `a game the user added is reminded before midnight on the device`() {
+        val next = nextReminder(beforeReset(4), listOf(userGame), at("2026-01-15T12:00"), zone)
 
         assertEquals(at("2026-01-15T20:00"), next)
     }

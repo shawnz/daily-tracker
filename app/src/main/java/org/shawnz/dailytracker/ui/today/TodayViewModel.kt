@@ -14,8 +14,8 @@ import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.dayChanges
+import org.shawnz.dailytracker.time.earliestDateAnywhere
 import org.shawnz.dailytracker.ui.STOP_TIMEOUT_MILLIS
-import java.time.LocalDate
 import javax.inject.Inject
 
 data class GameRowState(
@@ -38,16 +38,14 @@ class TodayViewModel
         repo: Repository,
     ) : ViewModel() {
         /**
-         * Null until loaded. An empty [TodayState.rows] means the user doesn't track any games.
-         *
-         * Entries from two days before the device's date are also read, because time zones are
-         * at most 26 hours apart, so a game's current day can be up to two days behind.
+         * Null until loaded. There are no rows when no games are tracked. Results are read from
+         * [earliestDateAnywhere] onward, because no puzzle day can be earlier.
          */
         @OptIn(ExperimentalCoroutinesApi::class)
         val state: StateFlow<TodayState?> =
             combine(
                 repo.observeActiveGames(),
-                repo.observeRecentEntries(LocalDate.now().minusDays(2)),
+                repo.observeRecentEntries(earliestDateAnywhere()),
             ) { games, entries -> games to entries }
                 .flatMapLatest { (games, entries) ->
                     dayChanges(games).map { rowsFor(games, entries) }
@@ -60,7 +58,7 @@ private fun rowsFor(
 ) = TodayState(
     rows =
         games.map { game ->
-            val day = game.currentPuzzleDay()
+            val day = game.possiblePuzzleDays(game.rolloverObserved(entries)).start
             GameRowState(
                 game = game,
                 entry = entries.firstOrNull { it.gameId == game.id && it.puzzleDay == day },

@@ -4,7 +4,6 @@ import androidx.annotation.DrawableRes
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.data.GameEntity
 import org.shawnz.dailytracker.data.GameSource
-import org.shawnz.dailytracker.data.RolloverType
 import org.shawnz.dailytracker.parse.BandleParser
 import org.shawnz.dailytracker.parse.CatfishingParser
 import org.shawnz.dailytracker.parse.CluesBySamParser
@@ -29,6 +28,8 @@ import org.shawnz.dailytracker.parse.TangoParser
 import org.shawnz.dailytracker.parse.WendParser
 import org.shawnz.dailytracker.parse.WordleParser
 import org.shawnz.dailytracker.parse.ZipParser
+import org.shawnz.dailytracker.time.RolloverRule
+import org.shawnz.dailytracker.time.RolloverZone
 import java.time.LocalTime
 
 /**
@@ -48,9 +49,7 @@ enum class CatalogGame(
     @param:DrawableRes val logo: Int? = null,
     val hidden: Boolean = false,
     val parser: ResultParser<*>? = null,
-    val rolloverType: RolloverType = RolloverType.UNSCHEDULED,
-    val rolloverZoneId: String? = null,
-    val rolloverTime: LocalTime = LocalTime.MIDNIGHT,
+    val rolloverRule: RolloverRule,
 ) : GameSource {
     WORDLE(
         title = "Wordle",
@@ -60,7 +59,7 @@ enum class CatalogGame(
         publisher = "The New York Times",
         logo = R.drawable.logo_wordle,
         parser = WordleParser,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     CONNECTIONS(
@@ -70,7 +69,7 @@ enum class CatalogGame(
         publisher = "The New York Times",
         logo = R.drawable.logo_connections,
         parser = ConnectionsParser,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     STRANDS(
@@ -80,7 +79,7 @@ enum class CatalogGame(
         publisher = "The New York Times",
         logo = R.drawable.logo_strands,
         parser = StrandsParser,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     CLUES_BY_SAM(
@@ -89,8 +88,7 @@ enum class CatalogGame(
         url = "https://cluesbysam.com/",
         publisher = "Ad Artis Oy",
         parser = CluesBySamParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/New_York",
+        rolloverRule = RolloverRule.NYC_MIDNIGHT,
     ),
 
     KINDA_HARD_GOLF(
@@ -100,9 +98,8 @@ enum class CatalogGame(
         otherUrls = listOf("https://kindahard.golf"),
         publisher = "Mighty Pebble Games",
         parser = KindaHardGolfParser,
-        // The game resets at 04:00 UTC, by a fixed offset that ignores daylight saving.
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "UTC-04:00",
+        // The puzzle day is the UTC date 4 hours earlier, so it changes at 04:00 UTC all year.
+        rolloverRule = RolloverRule(RolloverZone.Named("UTC-04:00"), LocalTime.MIDNIGHT),
     ),
 
     FOUR_BY_THREE(
@@ -113,7 +110,7 @@ enum class CatalogGame(
         publisher = "Hank Green",
         logo = R.drawable.logo_hankgreen,
         parser = FourByThreeParser,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     SMUSH(
@@ -126,7 +123,7 @@ enum class CatalogGame(
         publisher = "John Green",
         logo = R.drawable.logo_hankgreen,
         parser = SmushParser,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     FOUR_BY_SIX(
@@ -137,7 +134,7 @@ enum class CatalogGame(
         parser = FourBySixParser,
         // Reached through a streak-gated invite in 4×3.
         hidden = true,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     BANDLE(
@@ -145,7 +142,7 @@ enum class CatalogGame(
         description = "Guess the song, one instrument at a time.",
         url = "https://bandle.app/",
         parser = BandleParser,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     FOODGUESSR(
@@ -155,8 +152,7 @@ enum class CatalogGame(
         // FoodGuessr has other dailies under /game, so only this daily's path is listed.
         otherUrls = listOf("https://www.foodguessr.com/game/daily"),
         parser = FoodGuessrParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "UTC",
+        rolloverRule = RolloverRule.UTC_MIDNIGHT,
     ),
 
     RADDLE(
@@ -168,9 +164,8 @@ enum class CatalogGame(
         publisher = "The Mystery League",
         logo = R.drawable.logo_raddle,
         parser = RaddleParser,
-        // The newest puzzle comes from a published manifest, not from the clock. A puzzle is
-        // published the evening before its date, Chicago time.
-        rolloverType = RolloverType.UNSCHEDULED,
+        // Each puzzle goes live at no fixed hour in the Chicago evening before its date.
+        rolloverRule = RolloverRule(RolloverZone.Named("America/Chicago"), time = null),
     ),
 
     CATFISHING(
@@ -180,7 +175,7 @@ enum class CatalogGame(
                 "people, places, and things to guess every day.",
         url = "https://catfishing.net/",
         parser = CatfishingParser,
-        rolloverType = RolloverType.LOCAL_MIDNIGHT,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     KRILLION(
@@ -190,8 +185,7 @@ enum class CatalogGame(
                 "can you go?",
         url = "https://krillion.io/",
         parser = KrillionParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/New_York",
+        rolloverRule = RolloverRule.NYC_MIDNIGHT,
     ),
 
     RNGDLE(
@@ -201,8 +195,7 @@ enum class CatalogGame(
                 "and compete with friends.",
         url = "https://www.rngdle.com/",
         parser = RngdleParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "UTC",
+        rolloverRule = RolloverRule.UTC_MIDNIGHT,
     ),
 
     PARSEWORD(
@@ -211,9 +204,8 @@ enum class CatalogGame(
         url = "https://www.parseword.com/",
         publisher = "Josh Wardle",
         parser = ParsewordParser,
-        // The game resets at 08:00 UTC, by a fixed offset that ignores daylight saving.
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "UTC-08:00",
+        // The puzzle day is the UTC date 8 hours earlier, so it changes at 08:00 UTC all year.
+        rolloverRule = RolloverRule(RolloverZone.Named("UTC-08:00"), LocalTime.MIDNIGHT),
     ),
 
     // Every LinkedIn game rolls over at midnight Pacific.
@@ -227,8 +219,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_queens,
         parser = QueensParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     TANGO(
@@ -241,8 +232,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_tango,
         parser = TangoParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     ZIP(
@@ -255,8 +245,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_zip,
         parser = ZipParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     PINPOINT(
@@ -269,8 +258,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_pinpoint,
         parser = PinpointParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     CROSSCLIMB(
@@ -283,8 +271,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_crossclimb,
         parser = CrossclimbParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     MINI_SUDOKU(
@@ -295,8 +282,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_mini_sudoku,
         parser = MiniSudokuParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     WEND(
@@ -309,8 +295,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_wend,
         parser = WendParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     PATCHES(
@@ -323,8 +308,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_patches,
         parser = PatchesParser,
-        rolloverType = RolloverType.FIXED_ZONE,
-        rolloverZoneId = "America/Los_Angeles",
+        rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     ;

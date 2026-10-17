@@ -35,6 +35,7 @@ data class ConfirmShareState(
     val game: Game? = null,
     val day: LocalDate? = null,
     val entries: List<EntryEntity> = emptyList(),
+    val possiblePuzzleDays: ClosedRange<LocalDate>? = null,
     val currentDeviceDay: LocalDate = LocalDate.now(),
 ) {
     /** Every puzzle day with an entry. Highlighted in the day picker. */
@@ -63,8 +64,9 @@ class ConfirmShareViewModel
             )
 
         /**
-         * Null until a day is picked. Until then, [state] uses the day stated in the text, or else
-         * the game's current puzzle day.
+         * The day the user picked, or null if the user hasn't picked one. Until then, the day of
+         * the result is the day in the shared text. If the text has no day, or its day is after
+         * the end of the game's possible puzzle days, the start of that range is used.
          */
         private val chosenDay = MutableStateFlow<LocalDate?>(null)
 
@@ -88,19 +90,20 @@ class ConfirmShareViewModel
                 entries,
             ) { games, id, chosen, rows ->
                 val game = games.firstOrNull { it.id == id }
+                val possible = game?.let { it.possiblePuzzleDays(it.rolloverObserved(rows)) }
                 ConfirmShareState(
                     games = games,
                     game = game,
                     day =
-                        chosen ?: game?.let {
-                            val last = it.lastPuzzleDay()
-                            it.parser
+                        chosen ?: possible?.let {
+                            game.parser
                                 ?.parse(sharedText)
                                 ?.day
-                                ?.takeIf { day -> !day.isAfter(last) }
-                                ?: it.currentPuzzleDay()
+                                ?.takeIf { day -> !day.isAfter(it.endInclusive) }
+                                ?: it.start
                         },
                     entries = rows,
+                    possiblePuzzleDays = possible,
                 )
             }.takeWhile { !frozen }
                 .stateIn(

@@ -36,7 +36,7 @@ class ConfirmShareViewModelTest {
 
     private val wordle = testGame(id = 1)
     private val other = testGame(id = 2)
-    private val today = wordle.currentPuzzleDay()
+    private val today = wordle.possiblePuzzleDays(rolloverObserved = false).start
 
     private fun viewModel(
         repo: FakeRepository,
@@ -95,31 +95,31 @@ class ConfirmShareViewModelTest {
         }
 
     @Test
-    fun `a shared result from one day after the current puzzle is kept on that day for an unscheduled game`() =
+    fun `a shared result for the latest possible puzzle day is kept on that day`() =
         runTest(dispatcher) {
             val raddle = testGame(id = 3, source = CatalogGame.RADDLE)
-            val tomorrow = raddle.currentPuzzleDay().plusDays(1)
+            val last = raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive
             val vm =
                 viewModel(
                     FakeRepository(games = listOf(raddle)),
-                    sharedText = raddleText(tomorrow),
+                    sharedText = raddleText(last),
                     matchedGameId = raddle.id,
                 )
 
             val state = vm.state.first { it.game != null }
 
-            assertEquals(tomorrow, state.day)
+            assertEquals(last, state.day)
         }
 
     @Test
-    fun `a shared result from two days after the current puzzle falls back to the current puzzle day for an unscheduled game`() =
+    fun `a shared result after the latest possible puzzle day is filed on the earliest`() =
         runTest(dispatcher) {
             val raddle = testGame(id = 3, source = CatalogGame.RADDLE)
-            val current = raddle.currentPuzzleDay()
+            val current = raddle.possiblePuzzleDays(rolloverObserved = false).start
             val vm =
                 viewModel(
                     FakeRepository(games = listOf(raddle)),
-                    sharedText = raddleText(current.plusDays(2)),
+                    sharedText = raddleText(raddle.possiblePuzzleDays(rolloverObserved = false).endInclusive.plusDays(1)),
                     matchedGameId = raddle.id,
                 )
 
