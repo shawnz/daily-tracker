@@ -47,10 +47,7 @@ class ReminderWorker
             val now = ZonedDateTime.now()
             val outstanding =
                 gamesToRemind(reminder, games, now)
-                    .filter { game ->
-                        val day = game.possiblePuzzleDays(recent, now).start
-                        recent.none { it.gameId == game.id && it.puzzleDay == day }
-                    }
+                    .filter { it.currentEntry(recent, now) == null }
             if (outstanding.isNotEmpty()) post(outstanding)
 
             scheduler.scheduleNext(reminder, games)

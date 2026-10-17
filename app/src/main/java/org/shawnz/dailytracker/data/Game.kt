@@ -55,6 +55,18 @@ data class Game(
         return (lastPlayed ?: possible.start)..possible.endInclusive
     }
 
+    /**
+     * Returns this game's entry in [entries] for the start of [possiblePuzzleDays] at [now], or
+     * null if there is none.
+     */
+    fun currentEntry(
+        entries: List<EntryEntity>,
+        now: ZonedDateTime = ZonedDateTime.now(),
+    ): EntryEntity? {
+        val day = possiblePuzzleDays(entries, now).start
+        return entries.firstOrNull { it.gameId == id && it.puzzleDay == day }
+    }
+
     fun nextRollover(): Instant? = rolloverRule.nextRollover()
 
     fun nextPossiblePuzzleDaysChange(now: ZonedDateTime = ZonedDateTime.now()): Instant = rolloverRule.nextPossiblePuzzleDaysChange(now)

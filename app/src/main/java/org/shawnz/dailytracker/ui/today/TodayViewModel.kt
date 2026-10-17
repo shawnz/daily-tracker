@@ -58,10 +58,6 @@ private fun rowsFor(
 ) = TodayState(
     rows =
         games.map { game ->
-            val day = game.possiblePuzzleDays(entries).start
-            GameRowState(
-                game = game,
-                entry = entries.firstOrNull { it.gameId == game.id && it.puzzleDay == day },
-            )
+            GameRowState(game = game, entry = game.currentEntry(entries))
         },
 )
