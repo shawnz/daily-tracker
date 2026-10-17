@@ -3,12 +3,13 @@ package org.shawnz.dailytracker.data
 import androidx.room.TypeConverter
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 private const val NANOS_PER_SECOND = 1_000_000_000L
 
 /**
  * Stores a [LocalDate] as days since 1970-01-01, and an [Instant] as nanoseconds since
- * 1970-01-01T00:00Z, which covers the years 1677 to 2262.
+ * 1970-01-01T00:00Z, which covers the years 1677 to 2262. A [ZoneId] is stored as its ID.
  */
 class Converters {
     @TypeConverter
@@ -22,4 +23,10 @@ class Converters {
 
     @TypeConverter
     fun fromInstant(instant: Instant): Long = instant.epochSecond * NANOS_PER_SECOND + instant.nano
+
+    @TypeConverter
+    fun toZoneId(id: String): ZoneId = ZoneId.of(id)
+
+    @TypeConverter
+    fun fromZoneId(zone: ZoneId): String = zone.id
 }

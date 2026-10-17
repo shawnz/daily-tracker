@@ -27,6 +27,7 @@ object DataModule {
         Room
             .databaseBuilder(context, AppDatabase::class.java, "daily-tracker.db")
             .addCallback(GameSourceRule)
+            .addCallback(EntryZoneRule)
             .build()
 
     @Provides

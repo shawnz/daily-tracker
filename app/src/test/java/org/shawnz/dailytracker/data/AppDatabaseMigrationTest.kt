@@ -46,6 +46,35 @@ class AppDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun `entries are kept from version 2 to 3 with no zone`() {
+        helper.createDatabase(NAME, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO games (id, catalogGame, sortOrder, archived, remindersEnabled, createdAt) " +
+                    "VALUES (1, 'WORDLE', 0, 0, 1, 0)",
+            )
+            db.execSQL(
+                "INSERT INTO entries (id, gameId, puzzleDay, completedAt, rawShareText) " +
+                    "VALUES (7, 1, 20000, 5, 'Wordle 1,234 4/6')",
+            )
+        }
+
+        helper.runMigrationsAndValidate(NAME, 3, true).use { db ->
+            db
+                .query("SELECT id, gameId, puzzleDay, completedAt, completedZone, rawShareText FROM entries")
+                .use { rows ->
+                    assertTrue(rows.moveToFirst())
+                    assertEquals(7L, rows.getLong(0))
+                    assertEquals(1L, rows.getLong(1))
+                    assertEquals(20000L, rows.getLong(2))
+                    assertEquals(5L, rows.getLong(3))
+                    assertTrue(rows.isNull(4))
+                    assertEquals("Wordle 1,234 4/6", rows.getString(5))
+                    assertFalse(rows.moveToNext())
+                }
+        }
+    }
+
     private companion object {
         const val NAME = "migration-test.db"
     }

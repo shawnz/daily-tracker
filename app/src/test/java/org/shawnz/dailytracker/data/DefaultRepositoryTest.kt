@@ -13,7 +13,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.shawnz.dailytracker.data.catalog.CatalogGame
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * The repository against the database it actually uses, so the queries are covered as well as
@@ -32,6 +34,7 @@ class DefaultRepositoryTest {
                     RuntimeEnvironment.getApplication(),
                     AppDatabase::class.java,
                 ).addCallback(GameSourceRule)
+                .addCallback(EntryZoneRule)
                 .build()
         repo = DefaultRepository(db.gameDao(), db.entryDao())
     }
@@ -99,18 +102,97 @@ class DefaultRepositoryTest {
         }
     }
 
-    // The first save is when the game was played, and editing it later is not a replay.
+    // Saving the same text again doesn't count as a new play. Text pasted on the detail page can
+    // end in a newline, so one is added by hand.
     @Test
-    fun `replacing an entry keeps the time it was first recorded`() {
+    fun `saving the same text again keeps the time it was saved`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val game = repo.activeGames().single()
+            db.entryDao().insert(
+                EntryEntity(
+                    gameId = game.id,
+                    puzzleDay = puzzleDay,
+                    completedAt = Instant.EPOCH,
+                    rawShareText = solvedInFour,
+                ),
+            )
+
+            repo.record(game, "$solvedInFour\n", puzzleDay)
+
+            assertEquals(Instant.EPOCH, repo.entryFor(game, puzzleDay)!!.completedAt)
+        }
+    }
+
+    // A corrected result is saved at the time of the correction.
+    @Test
+    fun `saving different text takes the current time`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val game = repo.activeGames().single()
+            db.entryDao().insert(
+                EntryEntity(
+                    gameId = game.id,
+                    puzzleDay = puzzleDay,
+                    completedAt = Instant.EPOCH,
+                    rawShareText = solvedInFour,
+                ),
+            )
+
+            repo.record(game, solvedInThree, puzzleDay)
+
+            assertTrue(repo.entryFor(game, puzzleDay)!!.completedAt.isAfter(Instant.EPOCH))
+        }
+    }
+
+    @Test
+    fun `a new entry stores the device's zone`() {
         runBlocking {
             repo.addFromCatalog(CatalogGame.WORDLE)
             val game = repo.activeGames().single()
 
             repo.record(game, solvedInFour, puzzleDay)
-            val original = repo.entryFor(game, puzzleDay)!!.completedAt
+
+            assertEquals(ZoneId.systemDefault(), repo.entryFor(game, puzzleDay)!!.completedZone)
+        }
+    }
+
+    // An entry from before schema version 3 with no zone is left that way when the same text is
+    // saved again, since the zone it should have had can't be reliably inferred. The insert
+    // trigger is dropped to make such an entry for testing, and the update trigger is kept.
+    @Test
+    fun `saving the same text over an entry with no zone leaves it with no zone`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val game = repo.activeGames().single()
+            db.openHelper.writableDatabase.execSQL("DROP TRIGGER entries_zone_on_insert")
+            db.entryDao().insert(
+                EntryEntity(gameId = game.id, puzzleDay = puzzleDay, completedZone = null, rawShareText = solvedInFour),
+            )
+
+            repo.record(game, solvedInFour, puzzleDay)
+
+            assertNull(repo.entryFor(game, puzzleDay)!!.completedZone)
+        }
+    }
+
+    // The insert trigger is dropped to make an entry with no zone for testing, and the update
+    // trigger is kept.
+    @Test
+    fun `saving different text over an entry with no zone stores the device's zone`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val game = repo.activeGames().single()
+            db.openHelper.writableDatabase.execSQL("DROP TRIGGER entries_zone_on_insert")
+            db.entryDao().insert(
+                EntryEntity(gameId = game.id, puzzleDay = puzzleDay, completedZone = null, rawShareText = solvedInFour),
+            )
+
             repo.record(game, solvedInThree, puzzleDay)
 
-            assertEquals(original, repo.entryFor(game, puzzleDay)!!.completedAt)
+            val saved = repo.entryFor(game, puzzleDay)!!
+            assertEquals(solvedInThree, saved.rawShareText)
+            assertEquals(ZoneId.systemDefault(), saved.completedZone)
         }
     }
 

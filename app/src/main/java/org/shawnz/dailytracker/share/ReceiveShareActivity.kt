@@ -55,8 +55,7 @@ class ReceiveShareActivity : ComponentActivity() {
                     toast(getString(R.string.share_saved_to, match.title))
                 }
 
-                // Text pasted on the detail page is stored untrimmed, so trim before comparing.
-                match != null && existing?.rawShareText?.trim() == text -> {
+                match != null && existing?.hasText(text) == true -> {
                     toast(getString(R.string.share_already_saved_under, match.title))
                 }
 

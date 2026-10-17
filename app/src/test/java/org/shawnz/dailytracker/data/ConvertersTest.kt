@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 class ConvertersTest {
     private val converters = Converters()
@@ -26,5 +27,12 @@ class ConvertersTest {
         val instant = Instant.parse("1969-12-31T23:59:59.000000001Z")
         assertEquals(-999_999_999L, converters.fromInstant(instant))
         assertEquals(instant, converters.toInstant(converters.fromInstant(instant)))
+    }
+
+    @Test
+    fun `a zone is stored as its id`() {
+        val zone = ZoneId.of("America/Chicago")
+        assertEquals("America/Chicago", converters.fromZoneId(zone))
+        assertEquals(zone, converters.toZoneId(converters.fromZoneId(zone)))
     }
 }

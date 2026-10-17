@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.map
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 
 /** Reads and writes the tracked games and their plays. */
@@ -57,7 +58,9 @@ interface Repository {
     /**
      * Records a play.
      *
-     * [rawText] is stored as given, without validation.
+     * [rawText] is stored as given, without validation. If the entry already has text that
+     * [EntryEntity.hasText] matches, its completion time and zone are not changed. Otherwise they
+     * are set to the current time and zone.
      */
     suspend fun record(
         game: Game,
@@ -153,13 +156,23 @@ class DefaultRepository
             val existing = entryDao.find(game.id, day)
 
             val entry =
-                EntryEntity(
-                    id = existing?.id ?: 0,
-                    gameId = game.id,
-                    puzzleDay = day,
-                    completedAt = existing?.completedAt ?: Instant.now(),
-                    rawShareText = rawText,
-                )
+                when {
+                    existing == null -> {
+                        EntryEntity(gameId = game.id, puzzleDay = day, rawShareText = rawText)
+                    }
+
+                    existing.hasText(rawText) -> {
+                        existing.copy(rawShareText = rawText)
+                    }
+
+                    else -> {
+                        existing.copy(
+                            completedAt = Instant.now(),
+                            completedZone = ZoneId.systemDefault(),
+                            rawShareText = rawText,
+                        )
+                    }
+                }
 
             return if (existing != null) {
                 entryDao.update(entry)

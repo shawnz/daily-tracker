@@ -7,6 +7,8 @@ import androidx.room.PrimaryKey
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * A game that the user tracks.
@@ -38,6 +40,9 @@ data class GameEntity(
  * Parsed values are not stored, because [rawShareText] is parsed again at each draw.
  *
  * @property puzzleDay The puzzle's date, following this game's rollover rule.
+ * @property completedAt When [rawShareText] was first saved.
+ * @property completedZone The device's zone at [completedAt]. Null for an entry saved before
+ *   database version 3.
  * @property rawShareText The text the user saved. Null for a play recorded without one.
  */
 @Entity(
@@ -57,5 +62,12 @@ data class EntryEntity(
     val gameId: Long,
     val puzzleDay: LocalDate,
     val completedAt: Instant = Instant.now(),
+    val completedZone: ZoneId? = ZoneId.systemDefault(),
     val rawShareText: String? = null,
-)
+) {
+    /** Whether [text] matches [rawShareText], ignoring whitespace at either end. */
+    fun hasText(text: String?): Boolean = rawShareText?.trim() == text?.trim()
+
+    /** [completedAt] in [completedZone], or in [deviceZone] when [completedZone] is null. */
+    fun zonedCompletedAt(deviceZone: ZoneId = ZoneId.systemDefault()): ZonedDateTime = completedAt.atZone(completedZone ?: deviceZone)
+}

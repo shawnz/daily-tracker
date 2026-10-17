@@ -9,6 +9,7 @@ import org.shawnz.dailytracker.data.Repository
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 /**
  * A [Repository] held in memory.
@@ -119,13 +120,30 @@ class FakeRepository(
     ): Long {
         val existing = entryFor(game, day)
         val entry =
-            EntryEntity(
-                id = existing?.id ?: nextId++,
-                gameId = game.id,
-                puzzleDay = day,
-                completedAt = existing?.completedAt ?: Instant.EPOCH,
-                rawShareText = rawText,
-            )
+            when {
+                existing == null -> {
+                    EntryEntity(
+                        id = nextId++,
+                        gameId = game.id,
+                        puzzleDay = day,
+                        completedAt = Instant.EPOCH,
+                        completedZone = ZoneOffset.UTC,
+                        rawShareText = rawText,
+                    )
+                }
+
+                existing.hasText(rawText) -> {
+                    existing.copy(rawShareText = rawText)
+                }
+
+                else -> {
+                    existing.copy(
+                        completedAt = Instant.EPOCH,
+                        completedZone = ZoneOffset.UTC,
+                        rawShareText = rawText,
+                    )
+                }
+            }
         entries.value = entries.value.filterNot { it.id == entry.id } + entry
         return entry.id
     }
