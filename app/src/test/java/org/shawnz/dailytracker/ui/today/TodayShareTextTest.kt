@@ -8,9 +8,11 @@ import org.robolectric.RuntimeEnvironment
 import org.shawnz.dailytracker.data.CustomGame
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
+import org.shawnz.dailytracker.data.TodayStatus
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.testGame
 import org.shawnz.dailytracker.testdoubles.wordleText
+import java.time.Instant
 import java.time.LocalDate
 
 /**
@@ -25,7 +27,7 @@ class TodayShareTextTest {
     private fun row(
         game: Game,
         text: String?,
-    ) = GameRowState(game, EntryEntity(gameId = game.id, puzzleDay = day, rawShareText = text))
+    ) = GameRowState(game, TodayStatus.Done(EntryEntity(gameId = game.id, puzzleDay = day, rawShareText = text)))
 
     private fun share(vararg rows: GameRowState) = todayShareText(rows.toList(), day, RuntimeEnvironment.getApplication().resources)
 
@@ -46,10 +48,19 @@ class TodayShareTextTest {
     }
 
     @Test
-    fun `a game that is not played is left out`() {
+    fun `an unplayed game is left out`() {
         assertEquals(
             "Daily Tracker, Oct 6\n\nWordle: 1/6",
-            share(row(wordle, wordleText(day)), GameRowState(custom, entry = null)),
+            share(row(wordle, wordleText(day)), GameRowState(custom, TodayStatus.Unplayed(nextRollover = null))),
+        )
+    }
+
+    @Test
+    fun `an unreleased game is left out`() {
+        val unreleased = GameRowState(custom, TodayStatus.Unreleased(Instant.parse("2026-10-07T04:00:00Z")))
+        assertEquals(
+            "Daily Tracker, Oct 6\n\nWordle: 1/6",
+            share(row(wordle, wordleText(day)), unreleased),
         )
     }
 

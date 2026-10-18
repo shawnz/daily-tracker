@@ -9,14 +9,16 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.EntryEntity
+import org.shawnz.dailytracker.data.TodayStatus
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.testGame
+import java.time.Duration
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModelTest {
@@ -43,7 +45,7 @@ class TodayViewModelTest {
 
             val state = vm.state.first { it != null }!!
 
-            assertFalse(state.rows.single().done)
+            assertTrue(state.rows.single().status is TodayStatus.Unplayed)
             assertEquals(0, state.doneCount)
         }
 
@@ -55,8 +57,20 @@ class TodayViewModelTest {
 
             val state = vm.state.first { it != null }!!
 
-            assertTrue(state.rows.single().done)
+            assertTrue(state.rows.single().status is TodayStatus.Done)
             assertEquals(1, state.doneCount)
+        }
+
+    @Test
+    fun `an entry for today saved on an earlier date is unreleased`() =
+        runTest(dispatcher) {
+            val saved = entryToday().copy(completedAt = Instant.now().minus(Duration.ofDays(2)))
+            val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(saved)))
+
+            val state = vm.state.first { it != null }!!
+
+            assertTrue(state.rows.single().status is TodayStatus.Unreleased)
+            assertEquals(0, state.doneCount)
         }
 
     // The entry has to be for this game's own puzzle day, not just any day it has played.
@@ -71,7 +85,7 @@ class TodayViewModelTest {
 
             val state = vm.state.first { it != null }!!
 
-            assertFalse(state.rows.single().done)
+            assertTrue(state.rows.single().status is TodayStatus.Unplayed)
         }
 
     @Test
@@ -83,7 +97,7 @@ class TodayViewModelTest {
 
             val state = vm.state.first { it != null }!!
 
-            assertEquals(last, state.rows.single().entry)
+            assertEquals(TodayStatus.Done(last), state.rows.single().status)
         }
 
     @Test

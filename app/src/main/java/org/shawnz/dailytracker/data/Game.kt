@@ -67,7 +67,30 @@ data class Game(
         return entries.firstOrNull { it.gameId == id && it.puzzleDay == day }
     }
 
-    fun nextRollover(): Instant? = rolloverRule.nextRollover()
+    /**
+     * Returns this game's [TodayStatus] at [now], from [entries]. The date an entry was saved on is
+     * taken in its [EntryEntity.completedZone], or in the zone of [now] if it has none.
+     */
+    fun todayStatus(
+        entries: List<EntryEntity>,
+        now: ZonedDateTime = ZonedDateTime.now(),
+    ): TodayStatus {
+        val entry = currentEntry(entries, now)
+        val nextRollover = rolloverRule.nextRollover(now)
+        return when {
+            entry != null && entry.zonedCompletedAt(now.zone).toLocalDate() == now.toLocalDate() -> {
+                TodayStatus.Done(entry)
+            }
+
+            entry != null && nextRollover != null -> {
+                TodayStatus.Unreleased(nextRollover)
+            }
+
+            else -> {
+                TodayStatus.Unplayed(nextRollover)
+            }
+        }
+    }
 
     fun nextPossiblePuzzleDaysChange(now: ZonedDateTime = ZonedDateTime.now()): Instant = rolloverRule.nextPossiblePuzzleDaysChange(now)
 }

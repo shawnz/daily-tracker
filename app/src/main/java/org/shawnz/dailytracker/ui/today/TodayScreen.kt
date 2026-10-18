@@ -49,12 +49,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.browser.CustomTabLauncher
+import org.shawnz.dailytracker.data.TodayStatus
 import org.shawnz.dailytracker.ui.PageMargin
 import org.shawnz.dailytracker.ui.games.EntrySummary
 import org.shawnz.dailytracker.ui.shareText
+import org.shawnz.dailytracker.ui.timeText
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
@@ -65,10 +67,10 @@ import kotlin.time.Duration.Companion.minutes
 private val TopBarInset = PageMargin - 16.dp
 
 /**
- * The tracked games, and whether each one is done.
+ * The tracked games, and the [TodayStatus] of each one.
  *
- * Every gesture on a row opens the game's detail page. A tap on a game that isn't done also opens
- * the game.
+ * Every gesture on a row opens the game's detail page. A tap on a [TodayStatus.Unplayed] game also
+ * opens the game's page in a Custom Tab.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +90,7 @@ internal fun TodayScreen(
     // Unplayed games, in list order, are the ones most likely to be opened next.
     LaunchedEffect(today?.rows) {
         val rows = today?.rows ?: return@LaunchedEffect
-        CustomTabLauncher.prepare(rows.filterNot { it.done }.map { it.game.url })
+        CustomTabLauncher.prepare(rows.filter { it.status is TodayStatus.Unplayed }.map { it.game.url })
     }
 
     Scaffold(
@@ -114,10 +116,10 @@ internal fun TodayScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            val rows = today?.rows.orEmpty()
+                            val state = today ?: return@IconButton
                             shareText(
                                 context,
-                                todayShareText(rows, LocalDate.now(), resources),
+                                todayShareText(state.rows, state.day, resources),
                             )
                         },
                         enabled = today != null && today.doneCount > 0,
@@ -183,7 +185,7 @@ internal fun TodayScreen(
                             GameRow(
                                 row = row,
                                 onTap = {
-                                    if (!row.done) {
+                                    if (row.status is TodayStatus.Unplayed) {
                                         CustomTabLauncher.launch(
                                             context,
                                             row.game.url,
@@ -226,14 +228,18 @@ private fun GameRow(
     val haptics = LocalHapticFeedback.current
     val state =
         stringResource(
-            if (row.done) R.string.result_done else R.string.today_not_played,
+            when (row.status) {
+                is TodayStatus.Done -> R.string.result_done
+                is TodayStatus.Unreleased -> R.string.today_not_out
+                is TodayStatus.Unplayed -> R.string.today_not_played
+            },
         )
     Row(
         modifier =
             modifier
                 .fillMaxWidth()
-                // Done is drawn as a tick, and not done as an empty circle. The state
-                // description indicates which one to screen readers.
+                // Done is drawn as a tick, unreleased as a clock, and unplayed as an empty
+                // circle. The state description indicates which one to screen readers.
                 .semantics { stateDescription = state }
                 .combinedClickable(
                     onClick = onTap,
@@ -246,27 +252,35 @@ private fun GameRow(
                 .padding(start = PageMargin, top = 12.dp, bottom = 12.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatusDot(done = row.done)
+        StatusDot(row.status)
         Column(
             modifier = Modifier.weight(1f).padding(start = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(row.game.title, style = MaterialTheme.typography.titleMedium)
-            val entry = row.entry
-            val deadline = row.game.nextRollover()
-            if (entry != null) {
-                EntrySummary(row.game, entry)
-            } else {
-                Text(
-                    text =
-                        if (deadline == null) {
-                            stringResource(R.string.today_not_played)
-                        } else {
-                            timeLeft(deadline)
-                        },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            when (val status = row.status) {
+                is TodayStatus.Done -> {
+                    EntrySummary(row.game, status.entry)
+                }
+
+                is TodayStatus.Unreleased -> {
+                    val time = status.nextRollover.atZone(ZoneId.systemDefault()).toLocalTime()
+                    Text(
+                        text = stringResource(R.string.today_next_puzzle_at, timeText(time)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                is TodayStatus.Unplayed -> {
+                    Text(
+                        text =
+                            status.nextRollover?.let { timeLeft(it) }
+                                ?: stringResource(R.string.today_not_played),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         IconButton(onClick = onDetails) {
@@ -305,24 +319,37 @@ private fun minutesUntil(deadline: Instant): Long = Duration.between(Instant.now
 
 @Composable
 private fun StatusDot(
-    done: Boolean,
+    status: TodayStatus,
     modifier: Modifier = Modifier,
 ) {
-    if (done) {
-        Icon(
-            painterResource(R.drawable.ic_check_circle),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = modifier.size(28.dp),
-        )
-    } else {
-        Box(
-            modifier =
-                modifier
-                    .size(28.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-        )
+    when (status) {
+        is TodayStatus.Done -> {
+            Icon(
+                painterResource(R.drawable.ic_check_circle),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = modifier.size(28.dp),
+            )
+        }
+
+        is TodayStatus.Unreleased -> {
+            Icon(
+                painterResource(R.drawable.ic_schedule),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = modifier.size(28.dp),
+            )
+        }
+
+        is TodayStatus.Unplayed -> {
+            Box(
+                modifier =
+                    modifier
+                        .size(28.dp)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+            )
+        }
     }
 }
 
