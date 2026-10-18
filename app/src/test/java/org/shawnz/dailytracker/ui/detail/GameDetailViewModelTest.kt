@@ -21,6 +21,8 @@ import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.testGame
 import org.shawnz.dailytracker.testdoubles.wordleText
+import java.time.Duration
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameDetailViewModelTest {
@@ -171,6 +173,45 @@ class GameDetailViewModelTest {
 
             assertEquals(last, state.selectedDay)
             assertEquals(entry, state.selectedEntry)
+        }
+
+    @Test
+    fun `an unplayed game with a result for its first possible day opens on the day after it`() =
+        runTest(dispatcher) {
+            val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
+            val possible = raddle.possiblePuzzleDays(entries = emptyList())
+            val earlier =
+                EntryEntity(
+                    id = 1,
+                    gameId = raddle.id,
+                    puzzleDay = possible.start,
+                    completedAt = Instant.now().minus(Duration.ofDays(2)),
+                )
+            val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(earlier)))
+
+            val state = vm.state.first { it.selectedDay != null }
+
+            assertEquals(possible.endInclusive, state.selectedDay)
+        }
+
+    // The result is for the latest possible day, so no later day is possible yet.
+    @Test
+    fun `a result from an earlier date for the latest possible day opens on that day`() =
+        runTest(dispatcher) {
+            val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
+            val last = raddle.possiblePuzzleDays(entries = emptyList()).endInclusive
+            val earlier =
+                EntryEntity(
+                    id = 1,
+                    gameId = raddle.id,
+                    puzzleDay = last,
+                    completedAt = Instant.now().minus(Duration.ofDays(2)),
+                )
+            val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(earlier)))
+
+            val state = vm.state.first { it.selectedDay != null }
+
+            assertEquals(last, state.selectedDay)
         }
 
     @Test

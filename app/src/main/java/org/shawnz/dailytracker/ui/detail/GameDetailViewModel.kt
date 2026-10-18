@@ -22,11 +22,13 @@ import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.GameProgress
 import org.shawnz.dailytracker.data.Repository
+import org.shawnz.dailytracker.data.TodayStatus
 import org.shawnz.dailytracker.data.dayChanges
 import org.shawnz.dailytracker.data.gameProgress
 import org.shawnz.dailytracker.time.earliestDateAnywhere
 import org.shawnz.dailytracker.ui.STOP_TIMEOUT_MILLIS
 import java.time.LocalDate
+import java.time.ZonedDateTime
 
 /**
  * The state of the detail screen for one game on one day.
@@ -81,7 +83,7 @@ class GameDetailViewModel
             viewModelScope.launch {
                 val game = repo.getGame(gameId) ?: return@launch
                 val recent = repo.observeRecentEntries(earliestDateAnywhere()).first()
-                chosenDay.compareAndSet(null, game.possiblePuzzleDays(recent).start)
+                chosenDay.compareAndSet(null, openingDay(game, recent))
             }
         }
 
@@ -175,7 +177,7 @@ private fun detailState(
     chosen: LocalDate?,
 ): DetailState {
     val possible = game?.possiblePuzzleDays(entries)
-    val day = chosen ?: possible?.start
+    val day = chosen ?: game?.let { openingDay(it, entries) }
     return DetailState(
         game = game,
         selectedDay = day,
@@ -186,4 +188,20 @@ private fun detailState(
         possiblePuzzleDays = possible,
         currentDeviceDay = LocalDate.now(),
     )
+}
+
+/**
+ * Returns the day the detail page of [game] opens on at [now], from [entries]. It is the start of
+ * the possible puzzle days, or the day after the start when the game is [TodayStatus.Unplayed] and
+ * the start has a result.
+ */
+private fun openingDay(
+    game: Game,
+    entries: List<EntryEntity>,
+    now: ZonedDateTime = ZonedDateTime.now(),
+): LocalDate {
+    val possible = game.possiblePuzzleDays(entries, now)
+    val next = possible.start.plusDays(1)
+    val nextMayBeOut = game.currentEntry(entries, now) != null && next <= possible.endInclusive
+    return if (nextMayBeOut && game.todayStatus(entries, now) is TodayStatus.Unplayed) next else possible.start
 }

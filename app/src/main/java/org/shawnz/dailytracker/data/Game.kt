@@ -86,6 +86,11 @@ data class Game(
                 TodayStatus.Unreleased(nextRollover)
             }
 
+            // The day after the entry's day isn't a possible puzzle day yet.
+            entry != null && entry.puzzleDay == possiblePuzzleDays(entries, now).endInclusive -> {
+                TodayStatus.Unreleased(nextRollover = null)
+            }
+
             else -> {
                 TodayStatus.Unplayed(nextRollover)
             }

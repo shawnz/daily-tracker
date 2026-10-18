@@ -146,13 +146,23 @@ class GameTest {
     }
 
     // The rollover time is unknown, so the next puzzle may be out. At 00:30 in New York, it is
-    // 23:30 on the 16th in Chicago.
+    // 23:30 on the 16th in Chicago, so the possible days are the 16th and the 17th.
     @Test
     fun `after midnight, a result from the day before is unplayed when the rollover time is unknown`() {
         val raddle = testGame(id = 5, source = CatalogGame.RADDLE)
-        val entry = saved(raddle, october17, at("2026-10-16T22:00"))
+        val entry = saved(raddle, october16, at("2026-10-16T22:00"))
 
         assertEquals(TodayStatus.Unplayed(null), raddle.todayStatus(listOf(entry), at("2026-10-17T00:30")))
+    }
+
+    // The result is for the 17th, the last possible day. The 18th isn't a possible day until
+    // midnight in Chicago, which is 01:00 in New York.
+    @Test
+    fun `a result for the last possible day is unreleased when the rollover time is unknown`() {
+        val raddle = testGame(id = 5, source = CatalogGame.RADDLE)
+        val entry = saved(raddle, october17, at("2026-10-16T22:00"))
+
+        assertEquals(TodayStatus.Unreleased(null), raddle.todayStatus(listOf(entry), at("2026-10-17T00:30")))
     }
 
     // At 06:00 on the 17th in Sydney, it is 14:00 on the 16th in Chicago.

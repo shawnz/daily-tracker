@@ -264,9 +264,12 @@ private fun GameRow(
                 }
 
                 is TodayStatus.Unreleased -> {
-                    val time = status.nextRollover.atZone(ZoneId.systemDefault()).toLocalTime()
                     Text(
-                        text = stringResource(R.string.today_next_puzzle_at, timeText(time)),
+                        text =
+                            status.nextRollover?.let {
+                                val time = it.atZone(ZoneId.systemDefault()).toLocalTime()
+                                stringResource(R.string.today_next_puzzle_at, timeText(time))
+                            } ?: stringResource(R.string.today_not_out),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

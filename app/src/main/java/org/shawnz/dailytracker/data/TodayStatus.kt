@@ -13,12 +13,13 @@ sealed interface TodayStatus {
     ) : TodayStatus
 
     /**
-     * The current entry's text was saved on another date, and the game's rollover time is known.
+     * The current entry's text was saved on another date, and the next puzzle isn't out. Either the
+     * game's rollover time is known, or the next puzzle's day isn't a possible puzzle day yet.
      *
-     * @property nextRollover When the next puzzle is out.
+     * @property nextRollover When the next puzzle is out, or null when the rollover time is unknown.
      */
     data class Unreleased(
-        val nextRollover: Instant,
+        val nextRollover: Instant?,
     ) : TodayStatus
 
     /**
