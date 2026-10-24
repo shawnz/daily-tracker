@@ -117,6 +117,7 @@
     <string name="share_already_saved_under">Already saved under %1$s</string>
     <string name="share_nothing_to_save">Nothing to save</string>
     <string name="share_no_games">Add a game first</string>
+    <string name="share_link_only">That\'s just the URL! Try sharing again</string>
 
     <string name="reminder_channel_name">Daily reminders</string>
     <string name="reminder_channel_description">Reminds you about games you haven\'t played yet.</string>

@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
+import org.shawnz.dailytracker.data.urlMatches
 import javax.inject.Inject
 
 /**
@@ -59,6 +60,12 @@ class ReceiveShareActivity : ComponentActivity() {
                     toast(getString(R.string.share_already_saved_under, match.title))
                 }
 
+                // Warns when only the page URL was shared, unless it's a game without a parser, in
+                // which case that may be all that's available.
+                match == null && isGameUrl(text, games.filter { it.parser != null }) -> {
+                    toast(getString(R.string.share_link_only))
+                }
+
                 // No task flags, so the dialog opens in this activity's task. Closing the dialog
                 // then returns to the page it was shared from.
                 else -> {
@@ -88,3 +95,9 @@ class ReceiveShareActivity : ComponentActivity() {
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 }
+
+/** Whether [text] only contains a link to one of [games]. */
+internal fun isGameUrl(
+    text: String,
+    games: List<Game>,
+): Boolean = games.any { game -> game.urls.any { urlMatches(it, text) } }
