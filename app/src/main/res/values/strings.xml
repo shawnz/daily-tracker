@@ -12,10 +12,13 @@
     <string name="today_empty_body">Games you add appear here each day.</string>
     <string name="today_done_count" tools:ignore="PluralsCandidate">%1$d of %2$d done</string>
     <string name="today_not_played">Not played yet</string>
+    <string name="today_missed">Not played</string>
     <string name="today_time_left">%1$s left</string>
     <string name="today_time_left_soon">Less than a minute left</string>
     <string name="today_next_puzzle_at">Next puzzle at %1$s</string>
     <string name="today_not_out">Not out yet</string>
+    <string name="today_tomorrow_out">Tomorrow\'s puzzle is out</string>
+    <string name="today_yesterday_out">Yesterday\'s puzzle is still out</string>
     <string name="today_share_heading">%1$s, %2$s</string>
     <string name="today_share_line">%1$s: %2$s</string>
 

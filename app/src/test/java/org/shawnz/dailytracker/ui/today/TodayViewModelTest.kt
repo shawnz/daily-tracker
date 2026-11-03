@@ -3,22 +3,26 @@ package org.shawnz.dailytracker.ui.today
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.EntryEntity
-import org.shawnz.dailytracker.data.TodayStatus
+import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.testGame
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModelTest {
@@ -45,7 +49,7 @@ class TodayViewModelTest {
 
             val state = vm.state.first { it != null }!!
 
-            assertTrue(state.rows.single().status is TodayStatus.Unplayed)
+            assertTrue(state.rows.single().status is PuzzleStatus.Unplayed)
             assertEquals(0, state.doneCount)
         }
 
@@ -57,20 +61,20 @@ class TodayViewModelTest {
 
             val state = vm.state.first { it != null }!!
 
-            assertTrue(state.rows.single().status is TodayStatus.Done)
+            assertTrue(state.rows.single().status is PuzzleStatus.Done)
             assertEquals(1, state.doneCount)
         }
 
     @Test
-    fun `an entry for today saved on an earlier date is unreleased`() =
+    fun `an entry for today saved on an earlier date is done`() =
         runTest(dispatcher) {
             val saved = entryToday().copy(completedAt = Instant.now().minus(Duration.ofDays(2)))
             val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(saved)))
 
             val state = vm.state.first { it != null }!!
 
-            assertTrue(state.rows.single().status is TodayStatus.Unreleased)
-            assertEquals(0, state.doneCount)
+            assertEquals(PuzzleStatus.Done(saved), state.rows.single().status)
+            assertEquals(1, state.doneCount)
         }
 
     // The entry has to be for this game's own puzzle day, not just any day it has played.
@@ -85,19 +89,7 @@ class TodayViewModelTest {
 
             val state = vm.state.first { it != null }!!
 
-            assertTrue(state.rows.single().status is TodayStatus.Unplayed)
-        }
-
-    @Test
-    fun `a game with an unknown rollover time and a result for its latest possible day is done`() =
-        runTest(dispatcher) {
-            val raddle = testGame(id = 2, source = CatalogGame.RADDLE)
-            val last = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = raddle.possiblePuzzleDays(entries = emptyList()).endInclusive)
-            val vm = TodayViewModel(FakeRepository(listOf(raddle), listOf(last)))
-
-            val state = vm.state.first { it != null }!!
-
-            assertEquals(TodayStatus.Done(last), state.rows.single().status)
+            assertTrue(state.rows.single().status is PuzzleStatus.Unplayed)
         }
 
     @Test
@@ -110,6 +102,73 @@ class TodayViewModelTest {
             val state = vm.state.first { it != null }!!
 
             assertEquals(listOf(1L), state.rows.map { it.game.id })
+        }
+
+    @Test
+    fun `the page opens on the device's date`() =
+        runTest(dispatcher) {
+            val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
+
+            val state = vm.state.first { it != null }!!
+
+            assertEquals(LocalDate.now(), state.day)
+        }
+
+    @Test
+    fun `with no results, the page can't go back`() =
+        runTest(dispatcher) {
+            val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
+
+            assertFalse(vm.state.first { it != null }!!.canGoBack)
+        }
+
+    // Its puzzle changes at local midnight, so no later puzzle day is possible.
+    @Test
+    fun `the page can't go past the latest possible puzzle day`() =
+        runTest(dispatcher) {
+            val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
+            backgroundScope.launch { vm.state.collect {} }
+            vm.state.first { it != null }
+
+            vm.stepDay(1)
+            runCurrent()
+
+            assertEquals(LocalDate.now(), vm.state.value!!.day)
+            assertFalse(vm.state.value!!.canGoForward)
+        }
+
+    @Test
+    fun `the page goes back as far as the earliest result and shows it`() =
+        runTest(dispatcher) {
+            val earliest = entryToday().copy(puzzleDay = entryToday().puzzleDay.minusDays(2))
+            val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(earliest)))
+            backgroundScope.launch { vm.state.collect {} }
+            vm.state.first { it != null }
+
+            repeat(3) {
+                vm.stepDay(-1)
+                runCurrent()
+            }
+
+            val state = vm.state.value!!
+            assertEquals(earliest.puzzleDay, state.day)
+            assertFalse(state.canGoBack)
+            assertEquals(PuzzleStatus.Done(earliest), state.rows.single().status)
+        }
+
+    @Test
+    fun `a past puzzle with no result is missed`() =
+        runTest(dispatcher) {
+            val earliest = entryToday().copy(puzzleDay = entryToday().puzzleDay.minusDays(2))
+            val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(earliest)))
+            backgroundScope.launch { vm.state.collect {} }
+            vm.state.first { it != null }
+
+            vm.stepDay(-1)
+            runCurrent()
+
+            val state = vm.state.value!!
+            assertEquals(PuzzleStatus.Missed(currentPuzzleUnplayed = true), state.rows.single().status)
         }
 
     // Null means not loaded yet, so the empty state isn't shown while loading.

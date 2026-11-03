@@ -17,12 +17,12 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.EntryEntity
+import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.testGame
 import org.shawnz.dailytracker.testdoubles.wordleText
-import java.time.Duration
-import java.time.Instant
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameDetailViewModelTest {
@@ -35,7 +35,10 @@ class GameDetailViewModelTest {
     @AfterEach
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(repo: FakeRepository) = GameDetailViewModel(repo = repo, gameId = game.id)
+    private fun viewModel(
+        repo: FakeRepository,
+        openingDay: LocalDate = LocalDate.now(),
+    ) = GameDetailViewModel(repo = repo, gameId = game.id, openingDay = openingDay)
 
     @Test
     fun `reads the game it was asked for`() =
@@ -162,12 +165,12 @@ class GameDetailViewModelTest {
         }
 
     @Test
-    fun `a game with an unknown rollover time and a result for its latest possible day opens on that day`() =
+    fun `the page opens on the day it was opened for`() =
         runTest(dispatcher) {
             val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
             val last = raddle.possiblePuzzleDays(entries = emptyList()).endInclusive
             val entry = EntryEntity(id = 1, gameId = raddle.id, puzzleDay = last)
-            val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(entry)))
+            val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(entry)), openingDay = last)
 
             val state = vm.state.first { it.selectedDay != null }
 
@@ -176,42 +179,28 @@ class GameDetailViewModelTest {
         }
 
     @Test
-    fun `an unplayed game with a result for its first possible day opens on the day after it`() =
+    fun `a day after the last possible puzzle day opens as unreleased`() =
         runTest(dispatcher) {
-            val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
-            val possible = raddle.possiblePuzzleDays(entries = emptyList())
-            val earlier =
-                EntryEntity(
-                    id = 1,
-                    gameId = raddle.id,
-                    puzzleDay = possible.start,
-                    completedAt = Instant.now().minus(Duration.ofDays(2)),
-                )
-            val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(earlier)))
+            val later = game.possiblePuzzleDays(entries = emptyList()).endInclusive.plusDays(3)
+            val vm = viewModel(FakeRepository(games = listOf(game)), openingDay = later)
 
             val state = vm.state.first { it.selectedDay != null }
 
-            assertEquals(possible.endInclusive, state.selectedDay)
+            assertEquals(later, state.selectedDay)
+            assertTrue(state.selectedStatus is PuzzleStatus.Unreleased)
         }
 
-    // The result is for the latest possible day, so no later day is possible yet.
     @Test
-    fun `a result from an earlier date for the latest possible day opens on that day`() =
+    fun `no result is saved for a puzzle that isn't released yet`() =
         runTest(dispatcher) {
-            val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
-            val last = raddle.possiblePuzzleDays(entries = emptyList()).endInclusive
-            val earlier =
-                EntryEntity(
-                    id = 1,
-                    gameId = raddle.id,
-                    puzzleDay = last,
-                    completedAt = Instant.now().minus(Duration.ofDays(2)),
-                )
-            val vm = viewModel(FakeRepository(games = listOf(raddle), entries = listOf(earlier)))
+            val later = game.possiblePuzzleDays(entries = emptyList()).endInclusive.plusDays(3)
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo, openingDay = later)
+            vm.state.first { it.selectedDay != null }
 
-            val state = vm.state.first { it.selectedDay != null }
+            vm.record(wordleText(later)).join()
 
-            assertEquals(last, state.selectedDay)
+            assertTrue(repo.entries.value.isEmpty())
         }
 
     @Test

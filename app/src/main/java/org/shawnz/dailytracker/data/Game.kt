@@ -67,32 +67,36 @@ data class Game(
         return entries.firstOrNull { it.gameId == id && it.puzzleDay == day }
     }
 
-    /**
-     * Returns this game's [TodayStatus] at [now], from [entries]. The date an entry was saved on is
-     * taken in its [EntryEntity.completedZone], or in the zone of [now] if it has none.
-     */
-    fun todayStatus(
+    /** Returns the [PuzzleStatus] of this game's puzzle for [day] at [now], from [entries]. */
+    fun statusOn(
+        day: LocalDate,
         entries: List<EntryEntity>,
         now: ZonedDateTime = ZonedDateTime.now(),
-    ): TodayStatus {
-        val entry = currentEntry(entries, now)
+    ): PuzzleStatus {
+        val entry = entries.firstOrNull { it.gameId == id && it.puzzleDay == day }
+        if (entry != null) return PuzzleStatus.Done(entry)
+        val possible = possiblePuzzleDays(entries, now)
         val nextRollover = rolloverRule.nextRollover(now)
+        val currentPuzzleUnplayed =
+            listOf(possible.start, possible.endInclusive).any { possibleDay ->
+                entries.none { it.gameId == id && it.puzzleDay == possibleDay }
+            }
         return when {
-            entry != null && entry.zonedCompletedAt(now.zone).toLocalDate() == now.toLocalDate() -> {
-                TodayStatus.Done(entry)
+            day < possible.start -> {
+                PuzzleStatus.Missed(currentPuzzleUnplayed)
             }
 
-            entry != null && nextRollover != null -> {
-                TodayStatus.Unreleased(nextRollover)
+            day <= possible.endInclusive -> {
+                PuzzleStatus.Unplayed(nextRollover)
             }
 
-            // The day after the entry's day isn't a possible puzzle day yet.
-            entry != null && entry.puzzleDay == possiblePuzzleDays(entries, now).endInclusive -> {
-                TodayStatus.Unreleased(nextRollover = null)
+            // The puzzle for the day after the last possible one is released at the next rollover.
+            day == possible.endInclusive.plusDays(1) -> {
+                PuzzleStatus.Unreleased(nextRollover, currentPuzzleUnplayed)
             }
 
             else -> {
-                TodayStatus.Unplayed(nextRollover)
+                PuzzleStatus.Unreleased(nextRollover = null, currentPuzzleUnplayed = currentPuzzleUnplayed)
             }
         }
     }

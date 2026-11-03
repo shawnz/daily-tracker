@@ -2,6 +2,7 @@ package org.shawnz.dailytracker.testdoubles
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
@@ -53,6 +54,18 @@ class FakeRepository(
         entries.map { list -> list.filter { it.puzzleDay >= since } }
 
     override fun observeAllEntries(): Flow<List<EntryEntity>> = entries
+
+    override fun observeEntriesOn(day: LocalDate): Flow<List<EntryEntity>> = entries.map { list -> list.filter { it.puzzleDay == day } }
+
+    override fun observeEarliestPlayedDay(): Flow<LocalDate?> = activeDays().map { it.minOrNull() }
+
+    override fun observePlayedDays(): Flow<Set<LocalDate>> = activeDays()
+
+    private fun activeDays(): Flow<Set<LocalDate>> =
+        combine(games, entries) { games, entries ->
+            val active = games.filterNot { it.archived }.mapTo(HashSet()) { it.id }
+            entries.filter { it.gameId in active }.mapTo(HashSet()) { it.puzzleDay }
+        }
 
     override fun observeTrackedCatalogGames(): Flow<List<CatalogGame>> =
         games.map { list ->

@@ -66,6 +66,22 @@ interface EntryDao {
     @Query("SELECT * FROM entries")
     fun observeAll(): Flow<List<EntryEntity>>
 
+    @Query("SELECT * FROM entries WHERE puzzleDay = :day")
+    fun observeOnDay(day: LocalDate): Flow<List<EntryEntity>>
+
+    /** Null when no active game has an entry. */
+    @Query(
+        "SELECT MIN(entries.puzzleDay) FROM entries " +
+            "JOIN games ON games.id = entries.gameId WHERE games.archived = 0",
+    )
+    fun observeEarliestActiveDay(): Flow<LocalDate?>
+
+    @Query(
+        "SELECT DISTINCT entries.puzzleDay FROM entries " +
+            "JOIN games ON games.id = entries.gameId WHERE games.archived = 0",
+    )
+    fun observeActiveDays(): Flow<List<LocalDate>>
+
     @Query("SELECT * FROM entries WHERE gameId = :gameId AND puzzleDay = :puzzleDay LIMIT 1")
     suspend fun find(
         gameId: Long,

@@ -25,6 +25,7 @@ class DayPickerContentTest {
     private fun show(
         selected: LocalDate = last,
         playedDays: Set<LocalDate> = emptySet(),
+        first: LocalDate? = null,
         onPick: (LocalDate) -> Unit = {
         },
     ) = compose.setContent {
@@ -33,6 +34,7 @@ class DayPickerContentTest {
             last = last,
             playedDays = playedDays,
             onPick = onPick,
+            first = first,
         )
     }
 
@@ -73,5 +75,25 @@ class DayPickerContentTest {
         compose.onNodeWithText("20").performClick()
 
         assertEquals(last, picked)
+    }
+
+    @Test
+    fun `a day before the first one cannot be chosen`() {
+        var picked: LocalDate? = null
+        show(first = LocalDate.of(2026, 9, 10), onPick = { picked = it })
+
+        compose.onNodeWithText("5").performClick()
+
+        assertNull(picked)
+    }
+
+    @Test
+    fun `the first day itself can be chosen`() {
+        var picked: LocalDate? = null
+        show(first = LocalDate.of(2026, 9, 10), onPick = { picked = it })
+
+        compose.onNodeWithText("10").performClick()
+
+        assertEquals(LocalDate.of(2026, 9, 10), picked)
     }
 }

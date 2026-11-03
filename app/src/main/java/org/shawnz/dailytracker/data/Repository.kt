@@ -20,6 +20,14 @@ interface Repository {
 
     fun observeAllEntries(): Flow<List<EntryEntity>>
 
+    fun observeEntriesOn(day: LocalDate): Flow<List<EntryEntity>>
+
+    /** The earliest puzzle day with an entry of an active game, or null when there is none. */
+    fun observeEarliestPlayedDay(): Flow<LocalDate?>
+
+    /** Every puzzle day with an entry of an active game. */
+    fun observePlayedDays(): Flow<Set<LocalDate>>
+
     fun observeTrackedCatalogGames(): Flow<List<CatalogGame>>
 
     fun observeArchivedGames(): Flow<List<Game>>
@@ -92,6 +100,12 @@ class DefaultRepository
         override fun observeRecentEntries(since: LocalDate): Flow<List<EntryEntity>> = entryDao.observeSince(since)
 
         override fun observeAllEntries(): Flow<List<EntryEntity>> = entryDao.observeAll()
+
+        override fun observeEntriesOn(day: LocalDate): Flow<List<EntryEntity>> = entryDao.observeOnDay(day)
+
+        override fun observeEarliestPlayedDay(): Flow<LocalDate?> = entryDao.observeEarliestActiveDay()
+
+        override fun observePlayedDays(): Flow<Set<LocalDate>> = entryDao.observeActiveDays().map { it.toSet() }
 
         override fun observeTrackedCatalogGames(): Flow<List<CatalogGame>> = gameDao.observeTrackedCatalogGames()
 

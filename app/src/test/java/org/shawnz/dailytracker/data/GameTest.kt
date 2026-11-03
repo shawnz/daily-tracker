@@ -85,113 +85,123 @@ class GameTest {
 
     // Its puzzle changes at midnight in Los Angeles, which is 03:00 in New York.
     private val queens = testGame(id = 3, source = CatalogGame.QUEENS)
+
+    // Its puzzle changes at midnight UTC, which is 20:00 in New York.
+    private val foodGuessr = testGame(id = 4, source = CatalogGame.FOODGUESSR)
+
+    // Its puzzle changes at no fixed hour, and its possible days are the date in Chicago and the
+    // day after.
+    private val raddle = testGame(id = 5, source = CatalogGame.RADDLE)
+
     private val october16 = LocalDate.of(2026, 10, 16)
     private val october17 = LocalDate.of(2026, 10, 17)
+    private val october18 = LocalDate.of(2026, 10, 18)
+    private val october19 = LocalDate.of(2026, 10, 19)
 
-    private fun at(
-        time: String,
-        zone: ZoneId = newYork,
-    ): ZonedDateTime = LocalDateTime.parse(time).atZone(zone)
+    private fun at(time: String): ZonedDateTime = LocalDateTime.parse(time).atZone(newYork)
 
-    private fun saved(
+    private fun result(
         game: Game,
         puzzleDay: LocalDate,
-        time: ZonedDateTime,
-    ) = EntryEntity(gameId = game.id, puzzleDay = puzzleDay, completedAt = time.toInstant(), completedZone = time.zone)
+    ) = EntryEntity(gameId = game.id, puzzleDay = puzzleDay)
 
     @Test
-    fun `a result saved on the device's date is done until midnight`() {
-        val entry = saved(queens, october16, at("2026-10-16T22:00"))
+    fun `a puzzle with a result is done`() {
+        val entry = result(queens, october16)
 
-        assertEquals(TodayStatus.Done(entry), queens.todayStatus(listOf(entry), at("2026-10-16T23:59:59")))
+        assertEquals(PuzzleStatus.Done(entry), queens.statusOn(october16, listOf(entry), at("2026-10-17T01:00")))
     }
 
+    // The result was saved on the evening before the puzzle's date, and the puzzle is still done on
+    // its date.
     @Test
-    fun `after midnight, a result from the day before is unreleased until the rollover`() {
-        val entry = saved(queens, october16, at("2026-10-16T22:00"))
+    fun `a puzzle is done on its date whenever its result was saved`() {
+        val entry = result(foodGuessr, october17).copy(completedAt = at("2026-10-16T21:00").toInstant())
 
+        assertEquals(PuzzleStatus.Done(entry), foodGuessr.statusOn(october17, listOf(entry), at("2026-10-17T14:00")))
+    }
+
+    // At 01:00 in New York, it is still the 16th in Los Angeles.
+    @Test
+    fun `the current puzzle is unplayed until the rollover`() {
         assertEquals(
-            TodayStatus.Unreleased(Instant.parse("2026-10-17T07:00:00Z")),
-            queens.todayStatus(listOf(entry), at("2026-10-17T00:00")),
+            PuzzleStatus.Unplayed(Instant.parse("2026-10-17T07:00:00Z")),
+            queens.statusOn(october16, emptyList(), at("2026-10-17T01:00")),
         )
     }
 
-    // At 01:00 in New York it is still the 16th in Los Angeles, so the puzzle is the 16th's.
+    // At 21:00 on the 16th in New York, it is already the 17th in UTC.
     @Test
-    fun `a result for the day before that is saved after midnight is done`() {
-        val entry = saved(queens, october16, at("2026-10-17T01:00"))
-
-        assertEquals(TodayStatus.Done(entry), queens.todayStatus(listOf(entry), at("2026-10-17T02:00")))
-    }
-
-    // The puzzle changes at midnight UTC, which is 20:00 in New York. At 21:00 on the 16th, the
-    // puzzle is the 17th's.
-    @Test
-    fun `a result for the day after that is saved before midnight is unreleased the next day`() {
-        val foodGuessr = testGame(id = 4, source = CatalogGame.FOODGUESSR)
-        val entry = saved(foodGuessr, october17, at("2026-10-16T21:00"))
-
+    fun `a puzzle for the day after the device's date can be unplayed`() {
         assertEquals(
-            TodayStatus.Unreleased(Instant.parse("2026-10-18T00:00:00Z")),
-            foodGuessr.todayStatus(listOf(entry), at("2026-10-17T14:00")),
+            PuzzleStatus.Unplayed(Instant.parse("2026-10-18T00:00:00Z")),
+            foodGuessr.statusOn(october17, emptyList(), at("2026-10-16T21:00")),
         )
     }
 
     @Test
-    fun `a game with no current entry is unplayed until its rollover`() {
+    fun `the next puzzle is unreleased until the rollover`() {
         assertEquals(
-            TodayStatus.Unplayed(Instant.parse("2026-10-17T07:00:00Z")),
-            queens.todayStatus(emptyList(), at("2026-10-17T00:30")),
-        )
-    }
-
-    // The rollover time is unknown, so the next puzzle may be out. At 00:30 in New York, it is
-    // 23:30 on the 16th in Chicago, so the possible days are the 16th and the 17th.
-    @Test
-    fun `after midnight, a result from the day before is unplayed when the rollover time is unknown`() {
-        val raddle = testGame(id = 5, source = CatalogGame.RADDLE)
-        val entry = saved(raddle, october16, at("2026-10-16T22:00"))
-
-        assertEquals(TodayStatus.Unplayed(null), raddle.todayStatus(listOf(entry), at("2026-10-17T00:30")))
-    }
-
-    // The result is for the 17th, the last possible day. The 18th isn't a possible day until
-    // midnight in Chicago, which is 01:00 in New York.
-    @Test
-    fun `a result for the last possible day is unreleased when the rollover time is unknown`() {
-        val raddle = testGame(id = 5, source = CatalogGame.RADDLE)
-        val entry = saved(raddle, october17, at("2026-10-16T22:00"))
-
-        assertEquals(TodayStatus.Unreleased(null), raddle.todayStatus(listOf(entry), at("2026-10-17T00:30")))
-    }
-
-    // At 06:00 on the 17th in Sydney, it is 14:00 on the 16th in Chicago.
-    @Test
-    fun `in Sydney, a result from the day before is unplayed when the rollover time is unknown`() {
-        val sydney = ZoneId.of("Australia/Sydney")
-        val raddle = testGame(id = 5, source = CatalogGame.RADDLE)
-        val entry = saved(raddle, october16, at("2026-10-16T20:00", sydney))
-
-        assertEquals(TodayStatus.Unplayed(null), raddle.todayStatus(listOf(entry), at("2026-10-17T06:00", sydney)))
-    }
-
-    // The entry was saved at 22:00 on the 16th in Los Angeles, which is 16:00 on the 17th in
-    // Sydney. Its date is the 16th, the date in the zone it was saved in.
-    @Test
-    fun `a result keeps the date of the zone it was saved in`() {
-        val sydney = ZoneId.of("Australia/Sydney")
-        val entry = saved(queens, october16, at("2026-10-16T22:00", ZoneId.of("America/Los_Angeles")))
-
-        assertEquals(
-            TodayStatus.Unreleased(Instant.parse("2026-10-17T07:00:00Z")),
-            queens.todayStatus(listOf(entry), at("2026-10-17T17:00", sydney)),
+            PuzzleStatus.Unreleased(Instant.parse("2026-10-17T07:00:00Z"), currentPuzzleUnplayed = true),
+            queens.statusOn(october17, emptyList(), at("2026-10-17T01:00")),
         )
     }
 
     @Test
-    fun `a result with no zone is dated in the device's zone`() {
-        val entry = saved(queens, october16, at("2026-10-16T22:00")).copy(completedZone = null)
+    fun `an unreleased puzzle has no earlier unplayed puzzle once the earlier one has a result`() {
+        val entries = listOf(result(queens, october16))
 
-        assertEquals(TodayStatus.Done(entry), queens.todayStatus(listOf(entry), at("2026-10-16T23:00")))
+        assertEquals(
+            PuzzleStatus.Unreleased(Instant.parse("2026-10-17T07:00:00Z"), currentPuzzleUnplayed = false),
+            queens.statusOn(october17, entries, at("2026-10-17T01:00")),
+        )
+    }
+
+    // The 17th's puzzle is released at the rollover at 03:00, not the 18th's.
+    @Test
+    fun `a puzzle two days ahead is unreleased with no time`() {
+        assertEquals(
+            PuzzleStatus.Unreleased(null, currentPuzzleUnplayed = true),
+            queens.statusOn(october18, emptyList(), at("2026-10-17T01:00")),
+        )
+    }
+
+    // At 04:00 in New York, it is the 17th in Los Angeles.
+    @Test
+    fun `a puzzle with no result is missed after the rollover`() {
+        assertEquals(
+            PuzzleStatus.Missed(currentPuzzleUnplayed = true),
+            queens.statusOn(october16, emptyList(), at("2026-10-17T04:00")),
+        )
+    }
+
+    // At 21:00 on the 17th in New York, it is 20:00 on the 17th in Chicago, so the possible days
+    // are the 17th and the 18th.
+    @Test
+    fun `with an unknown rollover time, every possible day is unplayed with no time`() {
+        val now = at("2026-10-17T21:00")
+
+        assertEquals(PuzzleStatus.Unplayed(null), raddle.statusOn(october17, emptyList(), now))
+        assertEquals(PuzzleStatus.Unplayed(null), raddle.statusOn(october18, emptyList(), now))
+    }
+
+    @Test
+    fun `with an unknown rollover time, the day after the last possible day is unreleased`() {
+        assertEquals(
+            PuzzleStatus.Unreleased(null, currentPuzzleUnplayed = true),
+            raddle.statusOn(october19, emptyList(), at("2026-10-17T21:00")),
+        )
+    }
+
+    // With a result for the 18th, its puzzle is known to be released, so the 17th's puzzle is no
+    // longer current.
+    @Test
+    fun `with an unknown rollover time, a puzzle before a played one is missed`() {
+        val entries = listOf(result(raddle, october18))
+
+        assertEquals(
+            PuzzleStatus.Missed(currentPuzzleUnplayed = false),
+            raddle.statusOn(october17, entries, at("2026-10-17T21:00")),
+        )
     }
 }

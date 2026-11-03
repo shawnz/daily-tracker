@@ -56,6 +56,7 @@ import org.shawnz.dailytracker.data.COMPLETION_WINDOW_DAYS
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.GameProgress
+import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.ui.DayPickerDialog
 import org.shawnz.dailytracker.ui.PageMargin
 import org.shawnz.dailytracker.ui.dayLabel
@@ -63,6 +64,9 @@ import org.shawnz.dailytracker.ui.games.EntryAggregate
 import org.shawnz.dailytracker.ui.games.EntryDetail
 import org.shawnz.dailytracker.ui.hostLabel
 import org.shawnz.dailytracker.ui.shareText
+import org.shawnz.dailytracker.ui.timeText
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.math.roundToInt
 
 /** The details of one game, a button to play it, and its result for a selected day. */
@@ -70,10 +74,11 @@ import kotlin.math.roundToInt
 @Composable
 internal fun GameDetailScreen(
     gameId: Long,
+    day: LocalDate,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: GameDetailViewModel =
-        hiltViewModel<GameDetailViewModel, GameDetailViewModel.Factory> { it.create(gameId) },
+        hiltViewModel<GameDetailViewModel, GameDetailViewModel.Factory> { it.create(gameId, day) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val closed by viewModel.closed.collectAsStateWithLifecycle()
@@ -357,7 +362,17 @@ private fun DayCard(
 
             HorizontalDivider()
 
-            if (entry != null && !editing) {
+            val unreleased = state.selectedStatus as? PuzzleStatus.Unreleased
+            if (unreleased != null) {
+                Text(
+                    unreleased.nextRollover?.let {
+                        val time = it.atZone(ZoneId.systemDefault()).toLocalTime()
+                        stringResource(R.string.today_next_puzzle_at, timeText(time))
+                    } ?: stringResource(R.string.today_not_out),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (entry != null && !editing) {
                 EntryDetail(game, entry)
                 Row(
                     modifier = Modifier.fillMaxWidth(),

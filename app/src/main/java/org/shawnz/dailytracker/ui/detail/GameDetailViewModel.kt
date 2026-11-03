@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -21,20 +20,19 @@ import kotlinx.coroutines.launch
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.GameProgress
+import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.data.Repository
-import org.shawnz.dailytracker.data.TodayStatus
 import org.shawnz.dailytracker.data.dayChanges
 import org.shawnz.dailytracker.data.gameProgress
-import org.shawnz.dailytracker.time.earliestDateAnywhere
 import org.shawnz.dailytracker.ui.STOP_TIMEOUT_MILLIS
 import java.time.LocalDate
-import java.time.ZonedDateTime
 
 /**
  * The state of the detail screen for one game on one day.
  *
  * @property selectedDay The day shown on the day card, the only part of the screen that
  *   depends on it. Null until the game loads.
+ * @property selectedStatus The state of the puzzle for [selectedDay]. Null until the game loads.
  * @property playedDays Every puzzle day with an entry. Highlighted in the day picker.
  * @property entries All of this game's entries, for its aggregate figures.
  * @property possiblePuzzleDays Null until the game is loaded. The start is the day selected with
@@ -44,6 +42,7 @@ import java.time.ZonedDateTime
 data class DetailState(
     val game: Game? = null,
     val selectedDay: LocalDate? = null,
+    val selectedStatus: PuzzleStatus? = null,
     val selectedEntry: EntryEntity? = null,
     val playedDays: Set<LocalDate> = emptySet(),
     val entries: List<EntryEntity> = emptyList(),
@@ -66,26 +65,21 @@ class GameDetailViewModel
     constructor(
         private val repo: Repository,
         @Assisted private val gameId: Long,
+        @Assisted private val openingDay: LocalDate,
     ) : ViewModel() {
         @AssistedFactory
         interface Factory {
-            fun create(gameId: Long): GameDetailViewModel
+            fun create(
+                gameId: Long,
+                openingDay: LocalDate,
+            ): GameDetailViewModel
         }
 
         /**
-         * The day on the day card, or null until the game is loaded. It is first set to the start
-         * of the possible puzzle days. After that it is changed only by the user, so the card
-         * stays on the chosen day when the possible days change.
+         * The day chosen by the user, or null to show [openingDay]. It is changed only by the user,
+         * so the card stays on the same day when the possible days change.
          */
         private val chosenDay = MutableStateFlow<LocalDate?>(null)
-
-        init {
-            viewModelScope.launch {
-                val game = repo.getGame(gameId) ?: return@launch
-                val recent = repo.observeRecentEntries(earliestDateAnywhere()).first()
-                chosenDay.compareAndSet(null, openingDay(game, recent))
-            }
-        }
 
         /**
          * True once archiving or deleting has started. [state] is not updated after that, so a
@@ -101,7 +95,7 @@ class GameDetailViewModel
                 chosenDay,
             ) { game, entries, chosen -> Triple(game, entries, chosen) }
                 .flatMapLatest { (game, entries, chosen) ->
-                    dayChanges(listOfNotNull(game)).map { detailState(game, entries, chosen) }
+                    dayChanges(listOfNotNull(game)).map { detailState(game, entries, chosen, openingDay) }
                 }.takeWhile { !frozen }
                 .stateIn(
                     viewModelScope,
@@ -131,6 +125,8 @@ class GameDetailViewModel
             viewModelScope.launch {
                 val game = repo.getGame(gameId) ?: return@launch
                 val day = state.value.selectedDay ?: return@launch
+                // A puzzle that isn't released yet can't have a result.
+                if (state.value.selectedStatus is PuzzleStatus.Unreleased) return@launch
                 repo.record(game, text?.takeIf { it.isNotBlank() }, day)
             }
 
@@ -175,12 +171,14 @@ private fun detailState(
     game: Game?,
     entries: List<EntryEntity>,
     chosen: LocalDate?,
+    openingDay: LocalDate,
 ): DetailState {
     val possible = game?.possiblePuzzleDays(entries)
-    val day = chosen ?: game?.let { openingDay(it, entries) }
+    val day = chosen ?: openingDay.takeIf { game != null }
     return DetailState(
         game = game,
         selectedDay = day,
+        selectedStatus = day?.let { game?.statusOn(it, entries) },
         selectedEntry = day?.let { on -> entries.firstOrNull { it.puzzleDay == on } },
         playedDays = entries.mapTo(HashSet()) { it.puzzleDay },
         entries = entries,
@@ -188,20 +186,4 @@ private fun detailState(
         possiblePuzzleDays = possible,
         currentDeviceDay = LocalDate.now(),
     )
-}
-
-/**
- * Returns the day the detail page of [game] opens on at [now], from [entries]. It is the start of
- * the possible puzzle days, or the day after the start when the game is [TodayStatus.Unplayed] and
- * the start has a result.
- */
-private fun openingDay(
-    game: Game,
-    entries: List<EntryEntity>,
-    now: ZonedDateTime = ZonedDateTime.now(),
-): LocalDate {
-    val possible = game.possiblePuzzleDays(entries, now)
-    val next = possible.start.plusDays(1)
-    val nextMayBeOut = game.currentEntry(entries, now) != null && next <= possible.endInclusive
-    return if (nextMayBeOut && game.todayStatus(entries, now) is TodayStatus.Unplayed) next else possible.start
 }

@@ -34,7 +34,7 @@ fun AppNav() {
         entryProvider =
             entryProvider {
                 todayEntry(
-                    onOpenGame = { backStack.navigateToGameDetail(it) },
+                    onOpenGame = { gameId, day -> backStack.navigateToGameDetail(gameId, day) },
                     onAdd = { backStack.navigateToAdd() },
                     onStats = { backStack.navigateToStats() },
                     onSettings = { backStack.navigateToSettings() },

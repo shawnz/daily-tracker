@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,8 +39,9 @@ import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 
 /**
- * Selects a day, one month at a time, with [playedDays] highlighted. Days after [last] are shown
- * but can't be selected. [latest] is the day selected by the Latest button.
+ * Selects a day, one month at a time, with [playedDays] highlighted. Days before [first] and after
+ * [last] are shown but can't be selected. [latest] is the day selected by the button labelled
+ * [latestLabel].
  */
 @Composable
 fun DayPickerDialog(
@@ -49,6 +51,8 @@ fun DayPickerDialog(
     playedDays: Set<LocalDate>,
     onPick: (LocalDate) -> Unit,
     onDismiss: () -> Unit,
+    first: LocalDate? = null,
+    @StringRes latestLabel: Int = R.string.detail_latest,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -56,9 +60,9 @@ fun DayPickerDialog(
             TextButton(
                 onClick = { onPick(latest) },
                 enabled = selected != latest,
-            ) { Text(stringResource(R.string.detail_latest)) }
+            ) { Text(stringResource(latestLabel)) }
         },
-        text = { DayPickerContent(selected, last, playedDays, onPick) },
+        text = { DayPickerContent(selected, last, playedDays, onPick, first = first) },
     )
 }
 
@@ -70,13 +74,18 @@ fun DayPickerContent(
     playedDays: Set<LocalDate>,
     onPick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    first: LocalDate? = null,
 ) {
     var month by remember(selected) { mutableStateOf(YearMonth.from(selected)) }
+    val firstMonth = first?.let { YearMonth.from(it) }
     val lastMonth = YearMonth.from(last)
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { month = month.minusMonths(1) }) {
+            IconButton(
+                onClick = { month = month.minusMonths(1) },
+                enabled = firstMonth == null || month > firstMonth,
+            ) {
                 Icon(
                     painterResource(R.drawable.ic_chevron_left),
                     stringResource(R.string.detail_month_previous),
@@ -101,6 +110,7 @@ fun DayPickerContent(
         MonthGrid(
             month = month,
             selected = selected,
+            first = first,
             last = last,
             playedDays = playedDays,
             onPick = onPick,
@@ -114,6 +124,7 @@ private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM 
 private fun MonthGrid(
     month: YearMonth,
     selected: LocalDate,
+    first: LocalDate?,
     last: LocalDate,
     playedDays: Set<LocalDate>,
     onPick: (LocalDate) -> Unit,
@@ -148,7 +159,7 @@ private fun MonthGrid(
                         DayCell(
                             day = day,
                             selected = day == selected,
-                            enabled = !day.isAfter(last),
+                            enabled = !day.isAfter(last) && (first == null || !day.isBefore(first)),
                             played = day in playedDays,
                             onPick = onPick,
                             modifier = Modifier.weight(1f),

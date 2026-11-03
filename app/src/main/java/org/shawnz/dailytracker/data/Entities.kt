@@ -8,7 +8,6 @@ import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.ZonedDateTime
 
 /**
  * A game that the user tracks.
@@ -67,7 +66,4 @@ data class EntryEntity(
 ) {
     /** Whether [text] matches [rawShareText], ignoring whitespace at either end. */
     fun hasText(text: String?): Boolean = rawShareText?.trim() == text?.trim()
-
-    /** [completedAt] in [completedZone], or in [deviceZone] when [completedZone] is null. */
-    fun zonedCompletedAt(deviceZone: ZoneId = ZoneId.systemDefault()): ZonedDateTime = completedAt.atZone(completedZone ?: deviceZone)
 }

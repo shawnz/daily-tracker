@@ -16,6 +16,7 @@ import org.shawnz.dailytracker.ui.detail.GameDetail
 import org.shawnz.dailytracker.ui.settings.Settings
 import org.shawnz.dailytracker.ui.stats.Stats
 import org.shawnz.dailytracker.ui.today.Today
+import java.time.LocalDate
 
 /**
  * Each route is serialized by reflection when the back stack is saved, so one missing
@@ -33,7 +34,7 @@ class NavBackStackTest {
         restoration.setContent {
             backStack = rememberNavBackStack(Today)
         }
-        val routes = listOf(Add, AddCustom, Stats, Settings, GameDetail(gameId = 7))
+        val routes = listOf(Add, AddCustom, Stats, Settings, GameDetail(gameId = 7, day = LocalDate.of(2026, 10, 16)))
         compose.runOnIdle { backStack.addAll(routes) }
 
         restoration.emulateSavedInstanceStateRestore()

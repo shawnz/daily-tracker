@@ -3,6 +3,7 @@ package org.shawnz.dailytracker.ui.today
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
+import java.time.LocalDate
 
 @Serializable
 object Today : NavKey
@@ -13,7 +14,7 @@ fun MutableList<NavKey>.popToToday() {
 }
 
 fun EntryProviderScope<NavKey>.todayEntry(
-    onOpenGame: (Long) -> Unit,
+    onOpenGame: (gameId: Long, day: LocalDate) -> Unit,
     onAdd: () -> Unit,
     onStats: () -> Unit,
     onSettings: () -> Unit,

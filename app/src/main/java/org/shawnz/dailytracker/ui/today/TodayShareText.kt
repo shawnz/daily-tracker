@@ -2,7 +2,7 @@ package org.shawnz.dailytracker.ui.today
 
 import android.content.res.Resources
 import org.shawnz.dailytracker.R
-import org.shawnz.dailytracker.data.TodayStatus
+import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.ui.games.entrySummaryText
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -28,7 +28,7 @@ internal fun todayShareText(
         )
     val lines =
         rows.mapNotNull { row ->
-            (row.status as? TodayStatus.Done)?.let { done ->
+            (row.status as? PuzzleStatus.Done)?.let { done ->
                 resources.getString(
                     R.string.today_share_line,
                     row.game.title,

@@ -197,6 +197,44 @@ class DefaultRepositoryTest {
     }
 
     @Test
+    fun `the entries on a day are the entries for that puzzle day`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            repo.addFromCatalog(CatalogGame.CONNECTIONS)
+            val (wordle, connections) = repo.activeGames()
+            repo.record(wordle, null, puzzleDay)
+            repo.record(connections, null, puzzleDay)
+            repo.record(wordle, null, puzzleDay.minusDays(1))
+
+            val games = repo.observeEntriesOn(puzzleDay).first().mapTo(HashSet()) { it.gameId }
+
+            assertEquals(setOf(wordle.id, connections.id), games)
+        }
+    }
+
+    @Test
+    fun `the played days and the earliest played day leave out archived games`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            repo.addFromCatalog(CatalogGame.CONNECTIONS)
+            val (wordle, connections) = repo.activeGames()
+            repo.record(wordle, null, puzzleDay)
+            repo.record(connections, null, puzzleDay.minusDays(3))
+            repo.setArchived(connections, true)
+
+            assertEquals(setOf(puzzleDay), repo.observePlayedDays().first())
+            assertEquals(puzzleDay, repo.observeEarliestPlayedDay().first())
+        }
+    }
+
+    @Test
+    fun `with no entries, there is no earliest played day`() {
+        runBlocking {
+            assertNull(repo.observeEarliestPlayedDay().first())
+        }
+    }
+
+    @Test
     fun `an entry with no text still records a play`() {
         runBlocking {
             repo.addFromCatalog(CatalogGame.WORDLE)
