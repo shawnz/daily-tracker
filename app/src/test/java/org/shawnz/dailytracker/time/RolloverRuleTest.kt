@@ -81,7 +81,8 @@ class RolloverRuleTest {
     @Test
     fun `possible days for a named zone are the dates in that zone, not on the device`() {
         val now = nowAt("2026-09-08T08:00", tokyo)
-        assertEquals(september(7)..september(8), chicagoUnknownTime.possiblePuzzleDays(now))    }
+        assertEquals(september(7)..september(8), chicagoUnknownTime.possiblePuzzleDays(now))
+    }
 
     // At 20:00 on 7 September in Honolulu, it is 01:00 on 8 September in Chicago.
     @Test
