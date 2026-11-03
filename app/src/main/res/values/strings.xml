@@ -176,6 +176,9 @@
     <string name="foodguessr_total">%1$s points</string>
     <string name="foodguessr_best">Best %1$s</string>
     <string name="foodguessr_average">Average %1$s</string>
+    <string name="timeguessr_total">%1$s points</string>
+    <string name="timeguessr_best">Best %1$s</string>
+    <string name="timeguessr_average">Average %1$s</string>
     <string name="bandle_bonus">Bonus %1$d/%2$d</string>
     <string name="bandle_average">Named on guess %1$s</string>
     <string name="bandle_named">Named %1$d%% of songs</string>

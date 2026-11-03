@@ -90,6 +90,13 @@ class CatalogParsersTest {
                         "Monday, Sep 14, 2026\nPlay here: https://www.foodguessr.com/",
                 ),
                 arguments(
+                    "TimeGuessr",
+                    "TimeGuessr #1251 — 38,283/50,000\n\n1️⃣ 🏆2,953 · 📅 10y · 🌍 6404.0mi\n" +
+                        "2️⃣ 🏆9,944 · 📅 0y · 🌍 2.7mi\n3️⃣ 🏆9,904 · 📅 0y · 🌍 6.4mi\n" +
+                        "4️⃣ 🏆5,781 · 📅 26y · 🌍 6.5mi\n5️⃣ 🏆9,701 · 📅 3y · 🌍 442ft\n\n" +
+                        "https://timeguessr.com",
+                ),
+                arguments(
                     "Raddle",
                     "COSTA → RICA [💯]\nRaddle #567 • Sep 14, 2026\n\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🙌",
                 ),

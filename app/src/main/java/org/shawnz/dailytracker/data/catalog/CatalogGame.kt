@@ -25,6 +25,7 @@ import org.shawnz.dailytracker.parse.RngdleParser
 import org.shawnz.dailytracker.parse.SmushParser
 import org.shawnz.dailytracker.parse.StrandsParser
 import org.shawnz.dailytracker.parse.TangoParser
+import org.shawnz.dailytracker.parse.TimeGuessrParser
 import org.shawnz.dailytracker.parse.WendParser
 import org.shawnz.dailytracker.parse.WordleParser
 import org.shawnz.dailytracker.parse.ZipParser
@@ -153,6 +154,15 @@ enum class CatalogGame(
         otherUrls = listOf("https://www.foodguessr.com/game/daily"),
         parser = FoodGuessrParser,
         rolloverRule = RolloverRule.UTC_MIDNIGHT,
+    ),
+
+    TIMEGUESSR(
+        title = "TimeGuessr",
+        description = "Guess where and when historic photos were taken.",
+        url = "https://timeguessr.com/",
+        otherUrls = listOf("https://timeguessr.com/play?mode=daily"),
+        parser = TimeGuessrParser,
+        rolloverRule = RolloverRule(RolloverZone.Named("UTC-07:00"), LocalTime.MIDNIGHT),
     ),
 
     RADDLE(

@@ -30,6 +30,7 @@ import org.shawnz.dailytracker.parse.RngdleParser
 import org.shawnz.dailytracker.parse.SmushParser
 import org.shawnz.dailytracker.parse.StrandsParser
 import org.shawnz.dailytracker.parse.TangoParser
+import org.shawnz.dailytracker.parse.TimeGuessrParser
 import org.shawnz.dailytracker.parse.WendParser
 import org.shawnz.dailytracker.parse.WordleParser
 import org.shawnz.dailytracker.parse.ZipParser
@@ -96,6 +97,7 @@ class GameModule<R : GameResult>(
                 CatalogGame.KRILLION -> GameModule(KrillionParser, KrillionRenderer)
                 CatalogGame.CATFISHING -> GameModule(CatfishingParser, CatfishingRenderer)
                 CatalogGame.FOODGUESSR -> GameModule(FoodGuessrParser, FoodGuessrRenderer)
+                CatalogGame.TIMEGUESSR -> GameModule(TimeGuessrParser, TimeGuessrRenderer)
                 CatalogGame.BANDLE -> GameModule(BandleParser, BandleRenderer)
                 CatalogGame.CLUES_BY_SAM -> GameModule(CluesBySamParser, CluesBySamRenderer)
                 CatalogGame.FOUR_BY_THREE -> GameModule(FourByThreeParser, FourByThreeRenderer)
