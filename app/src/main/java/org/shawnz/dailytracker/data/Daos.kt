@@ -33,6 +33,15 @@ interface GameDao {
     @Query("SELECT catalogGame FROM games WHERE catalogGame IS NOT NULL")
     fun observeTrackedCatalogGames(): Flow<List<CatalogGame>>
 
+    @Query("SELECT * FROM games WHERE catalogGame IS NULL")
+    suspend fun getCustom(): List<GameEntity>
+
+    @Query("SELECT * FROM games WHERE catalogGame = :catalogGame LIMIT 1")
+    suspend fun findCatalog(catalogGame: CatalogGame): GameEntity?
+
+    @Update
+    suspend fun update(game: GameEntity)
+
     @Query("SELECT COALESCE(MAX(sortOrder), 0) FROM games")
     suspend fun maxSortOrder(): Int
 
@@ -59,6 +68,9 @@ interface GameDao {
 interface EntryDao {
     @Query("SELECT * FROM entries WHERE gameId = :gameId ORDER BY puzzleDay DESC")
     fun observeForGame(gameId: Long): Flow<List<EntryEntity>>
+
+    @Query("SELECT * FROM entries WHERE gameId = :gameId")
+    suspend fun getForGame(gameId: Long): List<EntryEntity>
 
     @Query("SELECT * FROM entries WHERE puzzleDay >= :minDay")
     fun observeSince(minDay: LocalDate): Flow<List<EntryEntity>>

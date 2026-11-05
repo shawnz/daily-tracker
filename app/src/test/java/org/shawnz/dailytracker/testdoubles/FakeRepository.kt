@@ -164,4 +164,7 @@ class FakeRepository(
     override suspend fun deleteEntry(entry: EntryEntity) {
         entries.value = entries.value.filterNot { it.id == entry.id }
     }
+
+    // Does nothing here. The migration is tested against the database in DefaultRepositoryTest.
+    override suspend fun migrateCustomGames() = Unit
 }

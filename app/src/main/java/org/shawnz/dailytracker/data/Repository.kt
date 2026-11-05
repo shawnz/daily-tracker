@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.data
 
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.shawnz.dailytracker.data.catalog.CatalogGame
@@ -77,11 +78,28 @@ interface Repository {
     ): Long
 
     suspend fun deleteEntry(entry: EntryEntity)
+
+    /**
+     * Moves each user-made game whose URL matches a catalog game onto that catalog game, so its
+     * entries are read with the catalog's parser.
+     *
+     * Each entry moves to the catalog game's row, unless that row has an entry on the same day:
+     * - When the user-made entry has no text, or text that [EntryEntity.hasText] matches, it is
+     *   deleted.
+     * - When only the catalog game's entry has no text, it is replaced with the user-made entry.
+     * - When the texts differ, the user-made entry stays on the user-made row.
+     *
+     * The user-made row is deleted when no entries are left on it. When the catalog game has no
+     * row, the user-made row is updated in place instead: its catalog game is set, its title and
+     * URL are cleared, and its entries and settings are kept.
+     */
+    suspend fun migrateCustomGames()
 }
 
 class DefaultRepository
     @Inject
     constructor(
+        private val database: AppDatabase,
         private val gameDao: GameDao,
         private val entryDao: EntryDao,
     ) : Repository {
@@ -197,6 +215,48 @@ class DefaultRepository
         }
 
         override suspend fun deleteEntry(entry: EntryEntity) = entryDao.delete(entry)
+
+        override suspend fun migrateCustomGames() =
+            database.withTransaction {
+                for (custom in gameDao.getCustom()) {
+                    val url = custom.url ?: continue
+                    val catalog =
+                        CatalogGame.entries.firstOrNull { game -> game.urls.any { urlMatches(it, url) } }
+                            ?: continue
+                    val target = gameDao.findCatalog(catalog)
+                    if (target == null) {
+                        gameDao.update(custom.copy(catalogGame = catalog, title = null, url = null))
+                        continue
+                    }
+                    val targetEntries = entryDao.getForGame(target.id).associateBy { it.puzzleDay }
+                    var left = 0
+                    for (entry in entryDao.getForGame(custom.id)) {
+                        val clash = targetEntries[entry.puzzleDay]
+                        when {
+                            clash == null -> {
+                                entryDao.update(entry.copy(gameId = target.id))
+                            }
+
+                            // No text, or the same text as the catalog game's entry.
+                            entry.rawShareText == null || clash.hasText(entry.rawShareText) -> {
+                                entryDao.delete(entry)
+                            }
+
+                            // The catalog game's entry has no text, so it is replaced with this one.
+                            clash.rawShareText == null -> {
+                                entryDao.delete(clash)
+                                entryDao.update(entry.copy(gameId = target.id))
+                            }
+
+                            // Different text on each side, so this entry stays for the user to resolve.
+                            else -> {
+                                left++
+                            }
+                        }
+                    }
+                    if (left == 0) gameDao.deleteById(custom.id)
+                }
+            }
     }
 
 /** Sorts by [Game.sortOrder], then by [Game.title] (stored only for a user-made game). */
