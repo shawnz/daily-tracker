@@ -69,7 +69,7 @@ class TimeGuessrParserTest {
     // A round score is grouped for the player's region. The separators are edited in.
     @Test
     fun `reads round scores grouped for other regions`() {
-        listOf(".", " ", " ", "'").forEach { separator ->
+        listOf(".", "\u202F", "\u00A0", "'").forEach { separator ->
             val result =
                 TimeGuessrParser.parse(
                     detailed.replace(Regex("""(🏆\d),""")) { it.groupValues[1] + separator },
