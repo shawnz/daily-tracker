@@ -14,6 +14,7 @@ import org.shawnz.dailytracker.parse.FourBySixParser
 import org.shawnz.dailytracker.parse.FourByThreeParser
 import org.shawnz.dailytracker.parse.KindaHardGolfParser
 import org.shawnz.dailytracker.parse.KrillionParser
+import org.shawnz.dailytracker.parse.MapTapParser
 import org.shawnz.dailytracker.parse.MiniSudokuParser
 import org.shawnz.dailytracker.parse.ParsewordParser
 import org.shawnz.dailytracker.parse.PatchesParser
@@ -163,6 +164,15 @@ enum class CatalogGame(
         otherUrls = listOf("https://timeguessr.com/play?mode=daily"),
         parser = TimeGuessrParser,
         rolloverRule = RolloverRule(RolloverZone.Named("UTC-07:00"), LocalTime.MIDNIGHT),
+    ),
+
+    MAPTAP(
+        title = "MapTap",
+        description = "Find 5 world locations on a 3D globe with historical stories.",
+        url = "https://maptap.gg/",
+        otherUrls = listOf("https://www.maptap.gg/"),
+        parser = MapTapParser,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
     RADDLE(

@@ -97,6 +97,10 @@ class CatalogParsersTest {
                         "https://timeguessr.com",
                 ),
                 arguments(
+                    "MapTap",
+                    "www.maptap.gg November 4\n94🏅 99🔥 95🏅 90👑 80🌞\nFinal score: 893",
+                ),
+                arguments(
                     "Raddle",
                     "COSTA → RICA [💯]\nRaddle #567 • Sep 14, 2026\n\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🙌",
                 ),
