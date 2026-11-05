@@ -12,6 +12,7 @@ import org.shawnz.dailytracker.parse.CrossclimbParser
 import org.shawnz.dailytracker.parse.FoodGuessrParser
 import org.shawnz.dailytracker.parse.FourBySixParser
 import org.shawnz.dailytracker.parse.FourByThreeParser
+import org.shawnz.dailytracker.parse.HuedParser
 import org.shawnz.dailytracker.parse.KindaHardGolfParser
 import org.shawnz.dailytracker.parse.KrillionParser
 import org.shawnz.dailytracker.parse.MapTapParser
@@ -172,6 +173,15 @@ enum class CatalogGame(
         url = "https://maptap.gg/",
         otherUrls = listOf("https://www.maptap.gg/"),
         parser = MapTapParser,
+        rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
+    ),
+
+    HUED(
+        title = "Hued",
+        description = "Match today's color in three guesses.",
+        url = "https://playhued.com/",
+        publisher = "Jacob Tippett",
+        parser = HuedParser,
         rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 

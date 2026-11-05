@@ -182,6 +182,11 @@
     <string name="maptap_total">%1$s points</string>
     <string name="maptap_best">Best %1$s</string>
     <string name="maptap_average">Average %1$s</string>
+    <string name="hued_accuracy">%1$d%%</string>
+    <string name="hued_guesses">%1$d/3 guesses</string>
+    <string name="hued_hint_used">Hint used</string>
+    <string name="hued_best">Best %1$d%%</string>
+    <string name="hued_average">Average %1$d%%</string>
     <string name="bandle_bonus">Bonus %1$d/%2$d</string>
     <string name="bandle_average">Named on guess %1$s</string>
     <string name="bandle_named">Named %1$d%% of songs</string>

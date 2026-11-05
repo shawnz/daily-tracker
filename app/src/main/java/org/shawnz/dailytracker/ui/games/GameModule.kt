@@ -17,6 +17,7 @@ import org.shawnz.dailytracker.parse.FoodGuessrParser
 import org.shawnz.dailytracker.parse.FourBySixParser
 import org.shawnz.dailytracker.parse.FourByThreeParser
 import org.shawnz.dailytracker.parse.GameResult
+import org.shawnz.dailytracker.parse.HuedParser
 import org.shawnz.dailytracker.parse.KindaHardGolfParser
 import org.shawnz.dailytracker.parse.KrillionParser
 import org.shawnz.dailytracker.parse.MapTapParser
@@ -100,6 +101,7 @@ class GameModule<R : GameResult>(
                 CatalogGame.FOODGUESSR -> GameModule(FoodGuessrParser, FoodGuessrRenderer)
                 CatalogGame.TIMEGUESSR -> GameModule(TimeGuessrParser, TimeGuessrRenderer)
                 CatalogGame.MAPTAP -> GameModule(MapTapParser, MapTapRenderer)
+                CatalogGame.HUED -> GameModule(HuedParser, HuedRenderer)
                 CatalogGame.BANDLE -> GameModule(BandleParser, BandleRenderer)
                 CatalogGame.CLUES_BY_SAM -> GameModule(CluesBySamParser, CluesBySamRenderer)
                 CatalogGame.FOUR_BY_THREE -> GameModule(FourByThreeParser, FourByThreeRenderer)

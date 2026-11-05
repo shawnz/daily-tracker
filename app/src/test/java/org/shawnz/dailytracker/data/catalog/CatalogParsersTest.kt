@@ -101,6 +101,10 @@ class CatalogParsersTest {
                     "www.maptap.gg November 4\n94🏅 99🔥 95🏅 90👑 80🌞\nFinal score: 893",
                 ),
                 arguments(
+                    "Hued",
+                    "Hued #179: 100% Avis\n🟢👑🌈\nHue Master!\nhttps://playhued.com",
+                ),
+                arguments(
                     "Raddle",
                     "COSTA → RICA [💯]\nRaddle #567 • Sep 14, 2026\n\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🙌",
                 ),
