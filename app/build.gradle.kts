@@ -1,3 +1,5 @@
+import com.android.build.api.variant.HasUnitTest
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,6 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.protobuf)
+    alias(libs.plugins.room3)
 }
 
 android {
@@ -39,8 +42,8 @@ android {
     }
 }
 
-ksp {
-    arg("room.schemaLocation", "$projectDir/schemas")
+room3 {
+    schemaDirectory("$projectDir/schemas")
 }
 
 protobuf {
@@ -82,6 +85,28 @@ tasks.withType<Test>().configureEach {
     jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
+// The Android build of the bundled SQLite driver has native code for Android only. The JVM build
+// is used for unit tests instead, because it has native code for the machine the tests run on.
+val bundledSqlite =
+    libs.androidx.sqlite.bundled
+        .asProvider()
+        .get()
+        .module
+        .toString()
+val bundledSqliteJvm =
+    libs.androidx.sqlite.bundled.jvm
+        .get()
+        .toString()
+androidComponents {
+    onVariants { variant ->
+        (variant as HasUnitTest).unitTest?.let { unitTest ->
+            with(unitTest.runtimeConfiguration.resolutionStrategy.dependencySubstitution) {
+                substitute(module(bundledSqlite)).using(module(bundledSqliteJvm))
+            }
+        }
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -95,9 +120,9 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+    ksp(libs.androidx.room3.compiler)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.datastore)
     implementation(libs.protobuf.kotlin.lite)
@@ -113,7 +138,7 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.work.testing)
-    testImplementation(libs.androidx.room.testing)
+    testImplementation(libs.androidx.room3.testing)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testRuntimeOnly(libs.junit.vintage.engine)

@@ -1,6 +1,6 @@
 package org.shawnz.dailytracker.data
 
-import androidx.room.withTransaction
+import androidx.room3.withWriteTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.shawnz.dailytracker.data.catalog.CatalogGame
@@ -217,7 +217,7 @@ class DefaultRepository
         override suspend fun deleteEntry(entry: EntryEntity) = entryDao.delete(entry)
 
         override suspend fun migrateCustomGames() =
-            database.withTransaction {
+            database.withWriteTransaction {
                 for (custom in gameDao.getCustom()) {
                     val url = custom.url ?: continue
                     val catalog =

@@ -1,17 +1,16 @@
 package org.shawnz.dailytracker.data
 
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.room3.executeSQL
+import androidx.room3.useWriterConnection
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.Instant
 import java.time.LocalDate
@@ -21,25 +20,17 @@ import java.time.ZoneId
  * The repository against the database it actually uses, so the queries are covered as well as
  * the surrounding Kotlin.
  */
-@RunWith(RobolectricTestRunner::class)
 class DefaultRepositoryTest {
     private lateinit var db: AppDatabase
     private lateinit var repo: Repository
 
-    @Before
+    @BeforeEach
     fun open() {
-        db =
-            Room
-                .inMemoryDatabaseBuilder(
-                    RuntimeEnvironment.getApplication(),
-                    AppDatabase::class.java,
-                ).addCallback(GameSourceRule)
-                .addCallback(EntryZoneRule)
-                .build()
+        db = buildAppDatabase(Room.inMemoryDatabaseBuilder<AppDatabase>())
         repo = DefaultRepository(db, db.gameDao(), db.entryDao())
     }
 
-    @After
+    @AfterEach
     fun close() {
         db.close()
     }
@@ -165,7 +156,7 @@ class DefaultRepositoryTest {
         runBlocking {
             repo.addFromCatalog(CatalogGame.WORDLE)
             val game = repo.activeGames().single()
-            db.openHelper.writableDatabase.execSQL("DROP TRIGGER entries_zone_on_insert")
+            db.useWriterConnection { it.executeSQL("DROP TRIGGER entries_zone_on_insert") }
             db.entryDao().insert(
                 EntryEntity(gameId = game.id, puzzleDay = puzzleDay, completedZone = null, rawShareText = solvedInFour),
             )
@@ -183,7 +174,7 @@ class DefaultRepositoryTest {
         runBlocking {
             repo.addFromCatalog(CatalogGame.WORDLE)
             val game = repo.activeGames().single()
-            db.openHelper.writableDatabase.execSQL("DROP TRIGGER entries_zone_on_insert")
+            db.useWriterConnection { it.executeSQL("DROP TRIGGER entries_zone_on_insert") }
             db.entryDao().insert(
                 EntryEntity(gameId = game.id, puzzleDay = puzzleDay, completedZone = null, rawShareText = solvedInFour),
             )
@@ -337,7 +328,7 @@ class DefaultRepositoryTest {
             repo.migrateCustomGames()
 
             forms.forEach { (url, catalogGame) ->
-                assertEquals(url, catalogGame, repo.getGame(ids.getValue(url))!!.catalogGame)
+                assertEquals(catalogGame, repo.getGame(ids.getValue(url))!!.catalogGame, url)
             }
         }
     }

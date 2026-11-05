@@ -1,19 +1,18 @@
 package org.shawnz.dailytracker.data
 
-import android.database.sqlite.SQLiteConstraintException
-import androidx.room.Room
+import androidx.room3.Room
+import androidx.room3.executeSQL
+import androidx.room3.useWriterConnection
+import androidx.sqlite.SQLiteException
 import kotlinx.coroutines.runBlocking
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import java.time.LocalDate
 
@@ -22,23 +21,15 @@ import java.time.LocalDate
  * game to one source of its details, the cascade from a game to its entries, and the index
  * that allows one entry per game per day.
  */
-@RunWith(RobolectricTestRunner::class)
 class AppDatabaseTest {
     private lateinit var db: AppDatabase
 
-    @Before
+    @BeforeEach
     fun open() {
-        db =
-            Room
-                .inMemoryDatabaseBuilder(
-                    RuntimeEnvironment.getApplication(),
-                    AppDatabase::class.java,
-                ).addCallback(GameSourceRule)
-                .addCallback(EntryZoneRule)
-                .build()
+        db = buildAppDatabase(Room.inMemoryDatabaseBuilder<AppDatabase>())
     }
 
-    @After
+    @AfterEach
     fun close() {
         db.close()
     }
@@ -62,7 +53,7 @@ class AppDatabaseTest {
 
     @Test
     fun `a game cannot have both a catalog entry and its own details`() {
-        assertThrows(SQLiteConstraintException::class.java) {
+        assertThrows(SQLiteException::class.java) {
             runBlocking {
                 db.gameDao().insert(
                     GameEntity(
@@ -77,7 +68,7 @@ class AppDatabaseTest {
 
     @Test
     fun `a game must have one source or the other`() {
-        assertThrows(SQLiteConstraintException::class.java) {
+        assertThrows(SQLiteException::class.java) {
             runBlocking { db.gameDao().insert(GameEntity()) }
         }
     }
@@ -86,10 +77,8 @@ class AppDatabaseTest {
     @Test
     fun `a game cannot be edited into having neither source`() {
         val id = runBlocking { db.gameDao().insert(catalogRow) }
-        assertThrows(SQLiteConstraintException::class.java) {
-            db.openHelper.writableDatabase.execSQL(
-                "UPDATE games SET catalogGame = NULL WHERE id = $id",
-            )
+        assertThrows(SQLiteException::class.java) {
+            runBlocking { db.useWriterConnection { it.executeSQL("UPDATE games SET catalogGame = NULL WHERE id = $id") } }
         }
     }
 
@@ -114,7 +103,7 @@ class AppDatabaseTest {
                 db.entryDao().insert(EntryEntity(gameId = id, puzzleDay = day))
                 id
             }
-        assertThrows(SQLiteConstraintException::class.java) {
+        assertThrows(SQLiteException::class.java) {
             runBlocking {
                 db.entryDao().insert(EntryEntity(gameId = id, puzzleDay = day))
             }
@@ -138,7 +127,7 @@ class AppDatabaseTest {
     @Test
     fun `a new entry must have a zone`() {
         val id = runBlocking { db.gameDao().insert(catalogRow) }
-        assertThrows(SQLiteConstraintException::class.java) {
+        assertThrows(SQLiteException::class.java) {
             runBlocking {
                 db.entryDao().insert(EntryEntity(gameId = id, puzzleDay = day, completedZone = null))
             }
@@ -149,10 +138,8 @@ class AppDatabaseTest {
     fun `an entry cannot be edited into having no zone`() {
         val id = runBlocking { db.gameDao().insert(catalogRow) }
         val entry = runBlocking { db.entryDao().insert(EntryEntity(gameId = id, puzzleDay = day)) }
-        assertThrows(SQLiteConstraintException::class.java) {
-            db.openHelper.writableDatabase.execSQL(
-                "UPDATE entries SET completedZone = NULL WHERE id = $entry",
-            )
+        assertThrows(SQLiteException::class.java) {
+            runBlocking { db.useWriterConnection { it.executeSQL("UPDATE entries SET completedZone = NULL WHERE id = $entry") } }
         }
     }
 
@@ -162,7 +149,7 @@ class AppDatabaseTest {
     fun `an entry with no zone can still be edited`() {
         runBlocking {
             val id = db.gameDao().insert(catalogRow)
-            db.openHelper.writableDatabase.execSQL("DROP TRIGGER entries_zone_on_insert")
+            db.useWriterConnection { it.executeSQL("DROP TRIGGER entries_zone_on_insert") }
             val entryId = db.entryDao().insert(EntryEntity(gameId = id, puzzleDay = day, completedZone = null))
 
             db.entryDao().update(
