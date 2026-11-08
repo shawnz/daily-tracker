@@ -8,8 +8,6 @@ import java.util.Locale
 /**
  * A FoodGuessr result.
  *
- * A day is scored rather than won or lost, so [success] is always null.
- *
  * @property total The day's total score.
  * @property rounds Each round's score, in the order played.
  * @property perfectRounds The number of rounds marked with 💯.
@@ -18,8 +16,10 @@ data class FoodGuessrResult(
     val total: Int?,
     val rounds: List<Int> = emptyList(),
     val perfectRounds: Int = 0,
-    override val day: LocalDate? = null,
-) : GameResult
+    val date: LocalDate? = null,
+) : GameResult {
+    override val puzzle: PuzzleIdentity get() = date?.let(PuzzleIdentity::Date) ?: PuzzleIdentity.UnidentifiedDaily
+}
 
 /**
  * Reads the FoodGuessr share text, in the Friendly or the Compact format.
@@ -83,7 +83,7 @@ object FoodGuessrParser : ResultParser<FoodGuessrResult> {
                     .mapNotNull { groupedNumberValue(it.groupValues[1]) }
                     .toList(),
             perfectRounds = Regex("💯").findAll(text).count(),
-            day = DATE.find(text)?.let { readDay(it.groupValues) },
+            date = DATE.find(text)?.let { readDay(it.groupValues) },
         )
     }
 

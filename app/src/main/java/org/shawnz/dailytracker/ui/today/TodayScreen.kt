@@ -87,8 +87,8 @@ private val TopBarInset = PageMargin - 16.dp
 /**
  * The tracked games' puzzles for one date, and the [PuzzleStatus] of each one.
  *
- * Every gesture on a row opens the game's detail page on that date. A tap on a
- * [PuzzleStatus.Unplayed] game also opens the game's page in a Custom Tab.
+ * Every gesture on a row opens the game's detail page on that date. A tap also opens the row's
+ * [GameRowState.siteUrl] in a Custom Tab.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,7 +109,7 @@ internal fun TodayScreen(
     // Unplayed games, in list order, are the ones most likely to be opened next.
     LaunchedEffect(today?.rows) {
         val rows = today?.rows ?: return@LaunchedEffect
-        CustomTabLauncher.prepare(rows.filter { it.status is PuzzleStatus.Unplayed }.map { it.game.url })
+        CustomTabLauncher.prepare(rows.filter { it.status is PuzzleStatus.Unplayed }.mapNotNull { it.siteUrl })
     }
 
     if (pickingDay && today != null) {
@@ -215,12 +215,8 @@ internal fun TodayScreen(
                                 row = row,
                                 onToday = today.day == today.today,
                                 onTap = {
-                                    if (row.status is PuzzleStatus.Unplayed) {
-                                        CustomTabLauncher.launch(
-                                            context,
-                                            row.game.url,
-                                            toolbarColor,
-                                        )
+                                    row.siteUrl?.let {
+                                        CustomTabLauncher.launch(context, it, toolbarColor)
                                     }
                                     onOpenGame(row.game.id, today.day)
                                 },

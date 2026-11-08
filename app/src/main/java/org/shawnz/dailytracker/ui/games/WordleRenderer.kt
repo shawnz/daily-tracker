@@ -85,13 +85,11 @@ object WordleRenderer : GameRenderer<WordleResult> {
                     color = gradeColor(result.guesses),
                 )
                 if (result.hardMode) HardChip()
-                result.puzzleNumber?.let {
-                    Text(
-                        "#$it",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    "#${result.number}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 result.skill?.let { BotScore(stringResource(R.string.wordle_bot_skill, it)) }
                 result.luck?.let { BotScore(stringResource(R.string.wordle_bot_luck, it)) }
             }

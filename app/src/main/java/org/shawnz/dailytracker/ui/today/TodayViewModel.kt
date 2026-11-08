@@ -26,9 +26,16 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 import javax.inject.Inject
 
+/**
+ * One game's row on the page for a date.
+ *
+ * @property siteUrl The address a tap opens in a Custom Tab, from [Game.playUrl]. Null when a
+ *   tap opens only the detail page.
+ */
 data class GameRowState(
     val game: Game,
     val status: PuzzleStatus,
+    val siteUrl: String?,
 )
 
 /**
@@ -159,7 +166,11 @@ internal data class Page(
             today = now.toLocalDate(),
             earliestDay = earliest,
             latestDay = latest,
-            rows = games.map { GameRowState(it, it.statusOn(day, entries, now)) },
+            rows =
+                games.map { game ->
+                    val status = game.statusOn(day, entries, now)
+                    GameRowState(game, status, game.playUrl(day, status, game.possiblePuzzleDays(entries, now)))
+                },
         )
     }
 }

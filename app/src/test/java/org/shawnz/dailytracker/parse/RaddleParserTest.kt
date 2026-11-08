@@ -23,8 +23,9 @@ class RaddleParserTest {
         val result = RaddleParser.parse(solved)!!
         assertEquals("COSTA", result.from)
         assertEquals("RICA", result.to)
-        assertEquals("567", result.puzzleNumber)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(567, result.number)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
+        assertEquals(PuzzleIdentity.Date(LocalDate.of(2026, 9, 14)), result.puzzle)
     }
 
     // At a hundred, 💯 is shown in place of the number.
@@ -74,8 +75,8 @@ class RaddleParserTest {
             RaddleParser.parse(
                 "COSTA → RICA [💯]\nRaddle #567 • Sep 14, 2026\n\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🙌",
             )!!
-        assertEquals("567", result.puzzleNumber)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(567, result.number)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
         assertEquals(11, result.rungs)
     }
 
@@ -86,7 +87,7 @@ class RaddleParserTest {
             LocalDate.of(2026, 9, 7),
             RaddleParser
                 .parse("NORTH → WESTERN [💯]\nRaddle #560 • Sep 07, 2026\n\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🙌")!!
-                .day,
+                .date,
         )
     }
 
@@ -122,7 +123,7 @@ class RaddleParserTest {
         assertEquals(16, result.percentage)
         assertEquals(10, result.revealed)
         assertEquals(12, result.rungs)
-        assertEquals(LocalDate.of(2026, 4, 3), result.day)
+        assertEquals(LocalDate.of(2026, 4, 3), result.date)
     }
 
     // The end word is hidden for the last step, so help can be used on it too.
@@ -145,7 +146,7 @@ class RaddleParserTest {
             RaddleParser.parse(
                 "COSTA → RICA [💯]\nRaddle #567 • Sep 14, 2026\n\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🙌 https://raddle.quest/567",
             )!!
-        assertEquals("567", result.puzzleNumber)
+        assertEquals(567, result.number)
         assertEquals(11, result.rungs)
     }
 

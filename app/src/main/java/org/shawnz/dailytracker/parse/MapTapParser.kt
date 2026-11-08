@@ -1,22 +1,23 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
+import java.time.MonthDay
 
 /**
  * A MapTap daily result.
  *
- * A day is scored rather than won or lost, so [success] is always null. The puzzles have no
- * number, so [puzzleNumber] is always null.
- *
  * @property total The day's final score, out of 1,000. Rounds 3, 4 and 5 have weights of 2, 3
  *   and 3 in it.
  * @property rounds Each round's score out of 100, in the order played.
+ * @property monthDay The day played. The text has no year. Null when the month has no such day.
  */
 data class MapTapResult(
     val total: Int?,
     val rounds: List<Int> = emptyList(),
-    override val day: LocalDate? = null,
-) : GameResult
+    val monthDay: MonthDay? = null,
+) : GameResult {
+    override val puzzle: PuzzleIdentity
+        get() = monthDay?.let(PuzzleIdentity::MonthAndDay) ?: PuzzleIdentity.UnidentifiedDaily
+}
 
 /**
  * Reads the MapTap daily share text.
@@ -31,8 +32,8 @@ data class MapTapResult(
  * Player maps and Best Of maps have a title in place of the date and aren't read, so each day
  * has one result.
  *
- * The date has no year, so the year comes from [monthAndDayValue]. A replay of an earlier day
- * has that day's date. Its month is written as in the page's URL, so the case can differ.
+ * A replay of an earlier day has that day's date. Its month is written as in the page's URL, so
+ * the case can differ.
  */
 object MapTapParser : ResultParser<MapTapResult> {
     private const val MONTH_NAME =
@@ -50,13 +51,7 @@ object MapTapParser : ResultParser<MapTapResult> {
 
     override fun matches(text: String): Boolean = HEADER.containsMatchIn(text)
 
-    override fun parse(text: String): MapTapResult? = parse(text, LocalDate.now())
-
-    /** Parses [text] as if read on [today]. */
-    fun parse(
-        text: String,
-        today: LocalDate,
-    ): MapTapResult? {
+    override fun parse(text: String): MapTapResult? {
         val header = HEADER.find(text) ?: return null
         val total = TOTAL.find(text, header.range.last + 1)
         val roundText = text.substring(header.range.last + 1, total?.range?.first ?: text.length)
@@ -64,7 +59,7 @@ object MapTapParser : ResultParser<MapTapResult> {
         return MapTapResult(
             total = total?.groupValues?.get(1)?.toIntOrNull(),
             rounds = ROUND.findAll(roundText).mapNotNull { it.value.toIntOrNull() }.toList(),
-            day = monthAndDayValue("$month ${header.groupValues[2]}", today),
+            monthDay = monthAndDayValue("$month ${header.groupValues[2]}"),
         )
     }
 }

@@ -29,25 +29,19 @@ class KindaHardGolfParserTest {
     @Test
     fun `reads the map number and the total`() {
         val result = KindaHardGolfParser.parse(round)!!
-        assertEquals("530", result.puzzleNumber)
+        assertEquals(530, result.number)
+        assertEquals(PuzzleIdentity.DailyNumber(530), result.puzzle)
         assertEquals(46, result.strokes)
     }
 
-    // The game served map 552 on 6 October 2026. The number is edited into the round above.
     @Test
-    fun `a map number is the day that map was published`() {
-        val result = KindaHardGolfParser.parse(round.replace("#530", "#552"))!!
-        assertEquals(LocalDate.of(2026, 10, 6), result.day)
-    }
-
-    @Test
-    fun `a custom map has no day`() {
+    fun `a custom map is outside the daily series`() {
         val result =
             KindaHardGolfParser.parse(
                 "kindahard.golf - Custom Map\n\"Windmill\"\n\n📝 22\n\n0.🏌️ 22\n\n" +
                     "https://kindahard.golf",
             )!!
-        assertNull(result.day)
+        assertEquals(PuzzleIdentity.NotDaily, result.puzzle)
     }
 
     @Test
@@ -88,7 +82,7 @@ class KindaHardGolfParserTest {
                 "kindahard.golf - Custom Map\n\"Windmill\"\n\n📝 22\n\n0.🏌️ 22\n\n" +
                     "https://kindahard.golf",
             )!!
-        assertNull(result.puzzleNumber)
+        assertNull(result.number)
         assertEquals("Windmill", result.mapName)
         assertEquals(22, result.strokes)
     }
@@ -99,7 +93,7 @@ class KindaHardGolfParserTest {
             KindaHardGolfParser.parse(
                 "kindahard.golf - Custom Map\n\n📝 9\n\n1.⛳ 4\n0.🏌️ 5\n\nhttps://kindahard.golf",
             )!!
-        assertNull(result.puzzleNumber)
+        assertNull(result.number)
         assertNull(result.mapName)
         assertEquals(listOf(4, 5), result.holes)
     }
@@ -122,7 +116,7 @@ class KindaHardGolfParserTest {
                     "https://kindahard.golf",
             )!!
         assertTrue(result.infuriating)
-        assertEquals("14", result.puzzleNumber)
+        assertEquals(14, result.number)
         assertEquals(60, result.strokes)
     }
 
@@ -134,7 +128,7 @@ class KindaHardGolfParserTest {
                     "https://kindahard.golf",
             )!!
         assertTrue(result.infuriating)
-        assertNull(result.puzzleNumber)
+        assertNull(result.number)
         assertEquals("Windmill", result.mapName)
     }
 
@@ -144,7 +138,7 @@ class KindaHardGolfParserTest {
             KindaHardGolfParser.parse(
                 "kindahard.golf\n\n📝 12\n\n1.⛳ 5\n0.🏌️ 7\n\nhttps://kindahard.golf",
             )!!
-        assertNull(result.puzzleNumber)
+        assertNull(result.number)
         assertNull(result.mapName)
         assertEquals(12, result.strokes)
     }
@@ -152,11 +146,6 @@ class KindaHardGolfParserTest {
     @Test
     fun `a daily has no map name`() {
         assertNull(KindaHardGolfParser.parse(round)!!.mapName)
-    }
-
-    @Test
-    fun `a round has no win or loss`() {
-        assertNull(KindaHardGolfParser.parse(round)!!.success)
     }
 
     @Test

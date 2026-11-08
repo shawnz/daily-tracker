@@ -26,7 +26,7 @@ import javax.inject.Inject
 /**
  * What a shared result is about to be saved as.
  *
- * @property games Null until the games have loaded.
+ * @property games The tracked games to choose from. Null until they have loaded.
  * @property day The puzzle day the result will be filed under. Null until a game is chosen.
  * @property entries The chosen game's entries, for the day picker and the replacement warning.
  */
@@ -95,13 +95,7 @@ class ConfirmShareViewModel
                     games = games,
                     game = game,
                     day =
-                        chosen ?: possible?.let {
-                            game.parser
-                                ?.parse(sharedText)
-                                ?.day
-                                ?.takeIf { day -> !day.isAfter(it.endInclusive) }
-                                ?: it.start
-                        },
+                        chosen ?: possible?.let { game.catalogGame?.dayIn(sharedText) ?: it.start },
                     entries = rows,
                     possiblePuzzleDays = possible,
                 )

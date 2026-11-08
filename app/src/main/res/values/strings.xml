@@ -47,6 +47,8 @@
     <string name="custom_game_url_invalid">That does not look like a link.</string>
 
     <string name="detail_play">Play</string>
+    <string name="detail_open_puzzle">Open puzzle</string>
+    <string name="detail_open_site">Open the game\'s site</string>
     <string name="detail_today">Today</string>
     <string name="detail_latest">Latest</string>
     <string name="detail_day_previous">Previous day</string>
@@ -54,7 +56,7 @@
     <string name="detail_pick_day">Pick a day</string>
     <string name="detail_month_previous">Previous month</string>
     <string name="detail_month_next">Next month</string>
-    <string name="detail_nothing_recorded">Nothing recorded.</string>
+    <string name="detail_nothing_recorded">Nothing recorded</string>
     <string name="detail_record_hint">Paste your result (optional)</string>
     <string name="detail_mark_done">Mark done</string>
     <string name="detail_save">Save</string>

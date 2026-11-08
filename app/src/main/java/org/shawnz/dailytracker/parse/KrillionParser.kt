@@ -1,10 +1,5 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
-/** The day of puzzle #1. There is one puzzle a day. */
-private val FIRST_DAY: LocalDate = LocalDate.of(2026, 7, 16)
-
 /** What the game calls a day's score, from the shallowest band to the deepest. */
 private val BANDS =
     listOf(
@@ -20,24 +15,19 @@ private const val MISS = '⬛'
 /**
  * A Krillion result.
  *
- * Each prompt is worth some points or none, so [success] is always null.
- *
+ * @property number The daily's number. Null for a run from unlimited or a themed pack, where the
+ *   number is a count of runs and not of days.
  * @property score The day's total points.
  * @property emoji One emoji per prompt. 🫧 plankton, 🤡 too clever, 🐟 schooler, 🦑 rare,
  *   🏮 deep cut, 🌟 one in a krillion, ⬛ a miss.
  * @property band The game's own word for the score, such as Schooler.
- * @property archive Whether the day was played later, from the archive.
- * @property unlimited A run from unlimited or a themed pack, which is numbered but not dated.
  */
 data class KrillionResult(
-    override val puzzleNumber: String?,
+    val number: Int?,
     val score: Int?,
     val emoji: String = "",
-    val archive: Boolean = false,
-    val unlimited: Boolean = false,
 ) : GameResult {
-    override val day: LocalDate?
-        get() = if (unlimited) null else dayFromNumber(puzzleNumber, FIRST_DAY)
+    override val puzzle: PuzzleIdentity get() = number?.let(PuzzleIdentity::DailyNumber) ?: PuzzleIdentity.NotDaily
 
     val misses: Int get() = emoji.count { it == MISS }
 
@@ -75,8 +65,9 @@ object KrillionParser : ResultParser<KrillionResult> {
     override fun parse(text: String): KrillionResult? {
         val header = HEADER.find(text) ?: return null
         val sign = header.groupValues[1]
+        val daily = sign.isEmpty() || sign == "⟲"
         return KrillionResult(
-            puzzleNumber = header.groupValues[2],
+            number = header.groupValues[2].toIntOrNull()?.takeIf { daily },
             score = header.groupValues[3].toIntOrNull(),
             emoji =
                 EMOJI_RUN
@@ -84,8 +75,6 @@ object KrillionParser : ResultParser<KrillionResult> {
                     .map { it.value }
                     .maxByOrNull { it.length }
                     .orEmpty(),
-            archive = sign == "⟲",
-            unlimited = sign.isNotEmpty() && sign != "⟲",
         )
     }
 }

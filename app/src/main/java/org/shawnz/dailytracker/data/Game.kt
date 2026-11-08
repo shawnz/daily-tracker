@@ -42,6 +42,35 @@ data class Game(
     val rolloverRule: RolloverRule get() = catalogGame?.rolloverRule ?: RolloverRule.DEFAULT
 
     /**
+     * Returns the address to open to play the puzzle for [day], given its [status] and the game's
+     * [possiblePuzzleDays]. Null when the puzzle can't be played.
+     *
+     * For an unplayed puzzle, this is [url] when [day] is the only possible puzzle day, because the
+     * current puzzle is there. Otherwise it is that day's puzzle address, or [url] when the game has
+     * none. For a missed puzzle, it is that day's puzzle address, and null when the game has none,
+     * because [url] shows a later puzzle.
+     */
+    fun playUrl(
+        day: LocalDate,
+        status: PuzzleStatus,
+        possiblePuzzleDays: ClosedRange<LocalDate>,
+    ): String? =
+        when (status) {
+            is PuzzleStatus.Unplayed -> {
+                val onlyPossibleDay = possiblePuzzleDays.start == day && possiblePuzzleDays.endInclusive == day
+                (if (onlyPossibleDay) null else catalogGame?.dayUrl(day)) ?: url
+            }
+
+            is PuzzleStatus.Missed -> {
+                catalogGame?.dayUrl(day)
+            }
+
+            is PuzzleStatus.Done, is PuzzleStatus.Unreleased -> {
+                null
+            }
+        }
+
+    /**
      * Returns the range of days the puzzle day can be at [now]. A result of this game in [entries]
      * is evidence that the puzzle for its day is out, so the range starts no earlier than the
      * latest such day.

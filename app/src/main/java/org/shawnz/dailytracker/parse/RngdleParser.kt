@@ -3,8 +3,6 @@ package org.shawnz.dailytracker.parse
 /**
  * An RNGdle result.
  *
- * A roll is neither won nor lost, so [success] is always null.
- *
  * @property roll The number rolled, as printed.
  * @property rarity The game's own word for the roll, from TRASH up to MYTHIC.
  * @property standing Where the roll placed. Printed only for a roll in the top half or the
@@ -23,6 +21,8 @@ data class RngdleResult(
     val points: Int? = null,
     val poem: String? = null,
 ) : GameResult {
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.UnidentifiedDaily
+
     val badgesEarned: Int get() = badges.size + moreBadges
 }
 

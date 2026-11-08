@@ -55,12 +55,7 @@ class FoodGuessrParserTest {
 
     @Test
     fun `reads the day`() {
-        assertEquals(LocalDate.of(2026, 9, 14), FoodGuessrParser.parse(played)!!.day)
-    }
-
-    @Test
-    fun `a day is scored rather than won or lost`() {
-        assertNull(FoodGuessrParser.parse(played)!!.success)
+        assertEquals(PuzzleIdentity.Date(LocalDate.of(2026, 9, 14)), FoodGuessrParser.parse(played)!!.puzzle)
     }
 
     @Test
@@ -78,7 +73,7 @@ class FoodGuessrParserTest {
         assertEquals(8791, result.total)
         assertEquals(listOf(1718, 5000, 2073), result.rounds)
         assertEquals(1, result.perfectRounds)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
     }
 
     @Test
@@ -140,7 +135,7 @@ class FoodGuessrParserTest {
         val result = FoodGuessrParser.parse(played.replace(Regex("\n+"), " "))!!
         assertEquals(8791, result.total)
         assertEquals(listOf(1718, 5000, 2073), result.rounds)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
     }
 
     @Test

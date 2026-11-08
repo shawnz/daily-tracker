@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.time.LocalDate
 
 class ConnectionsParserTest {
     // Copied from a finished game.
@@ -49,17 +48,9 @@ class ConnectionsParserTest {
 
     @Test
     fun `reads the puzzle number`() {
-        assertEquals("1191", ConnectionsParser.parse(won)!!.puzzleNumber)
-    }
-
-    // Puzzle one was published on 2023-06-12.
-    @Test
-    fun `a puzzle number is the day that puzzle was published`() {
-        assertEquals(LocalDate.of(2026, 9, 14), ConnectionsParser.parse(won)!!.day)
-        assertEquals(
-            LocalDate.of(2023, 6, 12),
-            ConnectionsParser.parse("Connections\nPuzzle #1\n🟨🟨🟨🟨\n🟩🟩🟩🟩\n🟦🟦🟦🟦\n🟪🟪🟪🟪")!!.day,
-        )
+        val result = ConnectionsParser.parse(won)!!
+        assertEquals(1191, result.number)
+        assertEquals(PuzzleIdentity.DailyNumber(1191), result.puzzle)
     }
 
     @Test
@@ -76,7 +67,7 @@ class ConnectionsParserTest {
                 "Archive September 1, 2026\nConnections Puzzle #1178\n" +
                     "🟨🟨🟨🟦\n🟨🟨🟨🟨\n🟩🟩🟩🟩\n🟦🟦🟦🟦\n🟪🟪🟪🟪",
             )!!
-        assertEquals("1178", result.puzzleNumber)
+        assertEquals(1178, result.number)
         assertEquals(4, result.groupsSolved)
         assertEquals(1, result.mistakes)
         assertTrue(result.success)

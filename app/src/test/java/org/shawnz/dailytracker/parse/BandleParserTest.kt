@@ -33,7 +33,7 @@ class BandleParserTest {
     @Test
     fun `reads the number, the guess it was named on and the guesses available`() {
         val result = BandleParser.parse(named)!!
-        assertEquals("1489", result.puzzleNumber)
+        assertEquals(1489, result.number)
         assertEquals(3, result.step)
         assertEquals(6, result.instruments)
         assertTrue(result.success)
@@ -96,7 +96,7 @@ class BandleParserTest {
     @Test
     fun `a decimal percentage and more hashtags do not stop it`() {
         val result = BandleParser.parse(OLDER)!!
-        assertEquals("733", result.puzzleNumber)
+        assertEquals(733, result.number)
         assertEquals(1, result.step)
         assertEquals("🟩⬜⬜⬜⬜⬜", result.emoji)
     }
@@ -160,7 +160,7 @@ class BandleParserTest {
                 "Bandle #959 2/6\n⬛🟩⬜⬜⬜⬜\nFound: 183/226 (81%)\nCurrent Daily Streak: 6 (max 20)\n" +
                     "#Bandle #Heardle \nhttps://bandle.app\nhttps://bandle.app/daily",
             )!!
-        assertEquals("959", result.puzzleNumber)
+        assertEquals(959, result.number)
         assertEquals(2, result.step)
         assertEquals("⬛🟩⬜⬜⬜⬜", result.emoji)
     }

@@ -41,9 +41,9 @@ class LinkedInParserTest {
     @Test
     fun `reads the number and the time`() {
         val result = QueensParser.parse(queens)!!
-        assertEquals("867", result.puzzleNumber)
+        assertEquals(867, result.number)
+        assertEquals(PuzzleIdentity.DailyNumber(867), result.puzzle)
         assertEquals(60, result.seconds)
-        assertTrue(result.success)
     }
 
     // Copied from a signed-in game. The 🏅 line is the gold card that was in focus on the results page.
@@ -53,15 +53,14 @@ class LinkedInParserTest {
             QueensParser.parse(
                 "Queens #878 | 2:41 with no hints\nFirst 👑s: \n🏅 I’m in the Top 75% of all players today!\nlnkd.in/queens.",
             )!!
-        assertEquals("878", result.puzzleNumber)
+        assertEquals(878, result.number)
         assertEquals(161, result.seconds)
-        assertEquals(LocalDate.of(2026, 9, 25), result.day)
     }
 
     @Test
     fun `a time under a minute is read`() {
         val result = ZipParser.parse(zip)!!
-        assertEquals("546", result.puzzleNumber)
+        assertEquals(546, result.number)
         assertEquals(21, result.seconds)
     }
 
@@ -98,7 +97,7 @@ class LinkedInParserTest {
                     "The classic game, made mini. Handcrafted by the originators of \"Sudoku.\"\n" +
                     "lnkd.in/minisudoku.",
             )!!
-        assertEquals("2", result.puzzleNumber)
+        assertEquals(2, result.number)
         assertEquals(50, result.seconds)
     }
 
@@ -107,7 +106,7 @@ class LinkedInParserTest {
     fun `a guest result is read`() {
         val result = PatchesParser.parse("Patches #187 | 0:29 🧶\nlnkd.in/patches.")!!
         assertEquals(29, result.seconds)
-        assertEquals(LocalDate.of(2026, 9, 20), result.day)
+        assertEquals(PuzzleIdentity.DailyNumber(187), result.puzzle)
     }
 
     @Test
@@ -124,7 +123,7 @@ class LinkedInParserTest {
             )
         for ((parser, text) in parsers) {
             val result = parser.parse(text)!!
-            assertEquals("2", result.puzzleNumber, text)
+            assertEquals(2, result.number, text)
             assertEquals(50, result.seconds, text)
         }
     }
@@ -136,21 +135,7 @@ class LinkedInParserTest {
             QueensParser.parse(
                 "Queens #1,000 | 0:50 and flawless\nFirst 👑s: 🟥 🟧 🟨\nlnkd.in/queens.",
             )!!
-        assertEquals("1000", result.puzzleNumber)
-        assertEquals(LocalDate.of(2027, 1, 25), result.day)
-    }
-
-    // Puzzle #1 of Queens was 2024-05-01, so #867 is 2026-09-14.
-    @Test
-    fun `the day is worked out from the puzzle number`() {
-        assertEquals(LocalDate.of(2026, 9, 14), QueensParser.parse(queens)!!.day)
-        assertEquals(LocalDate.of(2026, 9, 20), QueensParser.parse(queensSlow)!!.day)
-    }
-
-    // Zip started later than Queens, so the same day has a lower number.
-    @Test
-    fun `each game counts from its own first day`() {
-        assertEquals(LocalDate.of(2026, 9, 14), ZipParser.parse(zip)!!.day)
+        assertEquals(1000, result.number)
     }
 
     @Test
@@ -163,11 +148,11 @@ class LinkedInParserTest {
     @Test
     fun `pinpoint reads the guess count`() {
         val result = PinpointParser.parse(pinpoint)!!
-        assertEquals("873", result.puzzleNumber)
+        assertEquals(873, result.number)
+        assertEquals(PuzzleIdentity.DailyNumber(873), result.puzzle)
         assertEquals(5, result.guesses)
         assertEquals(5, result.total)
         assertTrue(result.success!!)
-        assertEquals(LocalDate.of(2026, 9, 20), result.day)
     }
 
     // A failed play has (X/5).
@@ -184,7 +169,7 @@ class LinkedInParserTest {
     @Test
     fun `pinpoint reads the signed-in guess count`() {
         val result = PinpointParser.parse(pinpointSignedIn)!!
-        assertEquals("2", result.puzzleNumber)
+        assertEquals(2, result.number)
         assertEquals(3, result.guesses)
         assertEquals(5, result.total)
         assertTrue(result.success!!)
@@ -217,8 +202,7 @@ class LinkedInParserTest {
                 "Pinpoint #1,000 | 3 guesses\n1️⃣ | 13% match\n2️⃣ | 79% match\n" +
                     "3️⃣ | 100% match 📌\nlnkd.in/pinpoint.",
             )!!
-        assertEquals("1000", result.puzzleNumber)
-        assertEquals(LocalDate.of(2027, 1, 25), result.day)
+        assertEquals(1000, result.number)
     }
 
     // The timed reader requires a time, which Pinpoint doesn't have.

@@ -1,7 +1,5 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
 /**
  * Whether the line is drawn out of [tiles] and nothing else.
  *
@@ -29,14 +27,3 @@ fun countTiles(
             .count()
             .toInt()
     }
-
-/**
- * The day a numbered daily was published, or null where the number is missing or is a name.
- *
- * [firstNumber] is the number of the puzzle published on [firstDay].
- */
-fun dayFromNumber(
-    number: String?,
-    firstDay: LocalDate,
-    firstNumber: Long = 1,
-): LocalDate? = number?.toLongOrNull()?.let { firstDay.plusDays(it - firstNumber) }

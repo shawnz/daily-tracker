@@ -1,10 +1,5 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
-/** The day of puzzle #1. There is one puzzle a day. */
-private val FIRST_DAY: LocalDate = LocalDate.of(2024, 3, 4)
-
 /**
  * The emoji of one puzzle. Each emoji is matched by its first code point, so a variation selector
  * or joiner after it doesn't matter.
@@ -26,12 +21,12 @@ private val USUAL_POINTS = USUAL.theme + USUAL.spangram + USUAL.hint
 /** The puzzles with their own emoji, by puzzle number. */
 private val THEMED =
     mapOf(
-        "483" to Marks(listOf("🔵", "🟢", "🔴", "🟠", "🟣", "🟡"), "🏳️‍🌈"),
-        "607" to Marks(listOf("🦴"), "💀", hint = "🕯️"),
-        "652" to Marks(listOf("🟡", "⚪️", "🟢", "🔵"), "📺"),
-        "744" to Marks(listOf("🟢"), "☘️"),
-        "853" to Marks(listOf("🎆"), "🇺🇸"),
-        "899" to Marks(listOf("🧺"), "🌭"),
+        483 to Marks(listOf("🔵", "🟢", "🔴", "🟠", "🟣", "🟡"), "🏳️‍🌈"),
+        607 to Marks(listOf("🦴"), "💀", hint = "🕯️"),
+        652 to Marks(listOf("🟡", "⚪️", "🟢", "🔵"), "📺"),
+        744 to Marks(listOf("🟢"), "☘️"),
+        853 to Marks(listOf("🎆"), "🇺🇸"),
+        899 to Marks(listOf("🧺"), "🌭"),
     )
 
 /**
@@ -46,13 +41,15 @@ private val THEMED =
  *   does each hint used. The lines are wrapped at four emoji, so a line break has no meaning.
  */
 data class StrandsResult(
-    override val puzzleNumber: String?,
+    val number: Int,
     val clue: String?,
     val emoji: List<String> = emptyList(),
 ) : GameResult {
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.DailyNumber(number)
+
     private val marks: Marks?
         get() =
-            THEMED[puzzleNumber]
+            THEMED[number]
                 ?: USUAL.takeIf {
                     emoji.all { line -> line.codePoints().allMatch { it in USUAL_POINTS || Character.isWhitespace(it) } }
                 }
@@ -63,12 +60,6 @@ data class StrandsResult(
 
     /** A word can take two hints: one to show it, and one to show its letters in order. */
     val hints: Int? get() = marks?.let { countTiles(emoji, it.hint) }
-
-    /** The board is played until it is finished, so there is no loss. */
-    override val success: Boolean get() = true
-
-    override val day: LocalDate?
-        get() = dayFromNumber(puzzleNumber, FIRST_DAY)
 }
 
 /**
@@ -93,10 +84,11 @@ object StrandsParser : ResultParser<StrandsResult> {
 
     override fun parse(text: String): StrandsResult? {
         val header = HEADER.find(text) ?: return null
+        val number = header.groupValues[1].toIntOrNull() ?: return null
         val lines = text.lines().map { it.trim() }
         val clueLine = lines.indexOfFirst { CLUE.containsMatchIn(it) }
         return StrandsResult(
-            puzzleNumber = header.groupValues[1],
+            number = number,
             clue = lines.getOrNull(clueLine)?.let { CLUE.find(it)?.groupValues?.get(1) },
             emoji = if (clueLine < 0) emptyList() else lines.drop(clueLine + 1).filter(::isMarks),
         )

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.EntryEntity
+import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.FakeRepository
@@ -217,4 +218,77 @@ class GameDetailViewModelTest {
                     .remindersEnabled,
             )
         }
+
+    private val raddle = testGame(id = 8, source = CatalogGame.RADDLE)
+    private val september14 = LocalDate.of(2026, 9, 14)
+    private val unplayed = PuzzleStatus.Unplayed(nextRollover = null)
+
+    private fun done(game: Game) = PuzzleStatus.Done(EntryEntity(gameId = game.id, puzzleDay = september14))
+
+    // A game with an unknown rollover time has two possible puzzle days.
+    @Test
+    fun `play opens the selected day's puzzle`() {
+        val state =
+            DetailState(
+                game = raddle,
+                selectedDay = september14,
+                selectedStatus = unplayed,
+                possiblePuzzleDays = september14..september14.plusDays(1),
+            )
+
+        assertEquals("https://raddle.quest/2026/09/14/", state.playUrl)
+    }
+
+    @Test
+    fun `play opens the game's page when the game has no page for each puzzle`() {
+        val state =
+            DetailState(
+                game = game,
+                selectedDay = september14,
+                selectedStatus = unplayed,
+                possiblePuzzleDays = september14..september14,
+            )
+
+        assertEquals(game.url, state.playUrl)
+    }
+
+    @Test
+    fun `a done puzzle can be opened and not played`() {
+        val state =
+            DetailState(
+                game = raddle,
+                selectedDay = september14,
+                selectedStatus = done(raddle),
+                possiblePuzzleDays = september14..september14.plusDays(1),
+            )
+
+        assertNull(state.playUrl)
+        assertEquals("https://raddle.quest/2026/09/14/", state.puzzleUrl)
+    }
+
+    @Test
+    fun `a done puzzle of a game with no page for each puzzle can't be opened`() {
+        val state =
+            DetailState(
+                game = game,
+                selectedDay = september14,
+                selectedStatus = done(game),
+                possiblePuzzleDays = september14..september14,
+            )
+
+        assertNull(state.puzzleUrl)
+    }
+
+    @Test
+    fun `an unplayed puzzle has no puzzle to open`() {
+        val state =
+            DetailState(
+                game = raddle,
+                selectedDay = september14,
+                selectedStatus = unplayed,
+                possiblePuzzleDays = september14..september14.plusDays(1),
+            )
+
+        assertNull(state.puzzleUrl)
+    }
 }

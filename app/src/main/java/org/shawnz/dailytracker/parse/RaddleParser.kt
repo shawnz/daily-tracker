@@ -20,13 +20,16 @@ private const val REVEALED = 0x1F441
  *   rung's emoji indicates the help used: 🟢 none, 💡 one reveal, 👁️ more than one.
  */
 data class RaddleResult(
-    override val puzzleNumber: String?,
+    val number: Int,
     val from: String?,
     val to: String?,
     val percentage: Int?,
-    override val day: LocalDate?,
+    val date: LocalDate?,
     val emoji: String = "",
 ) : GameResult {
+    override val puzzle: PuzzleIdentity
+        get() = date?.let(PuzzleIdentity::Date) ?: PuzzleIdentity.DailyNumber(number)
+
     val clean: Int get() = countEmoji(CLEAN)
     val hinted: Int get() = countEmoji(HINTED)
     val revealed: Int get() = countEmoji(REVEALED)
@@ -34,7 +37,7 @@ data class RaddleResult(
     /** How many rungs the ladder had. */
     val rungs: Int get() = clean + hinted + revealed
 
-    override val success: Boolean? get() = percentage?.let { it == 100 }
+    val success: Boolean? get() = percentage?.let { it == 100 }
 
     private fun countEmoji(point: Int): Int =
         emoji
@@ -80,13 +83,14 @@ object RaddleParser : ResultParser<RaddleResult> {
 
     override fun parse(text: String): RaddleResult? {
         val header = HEADER.find(text) ?: return null
+        val number = header.groupValues[1].toIntOrNull() ?: return null
         val ladder = LADDER.find(text)
         return RaddleResult(
-            puzzleNumber = header.groupValues[1],
+            number = number,
             from = ladder?.groupValues?.get(1),
             to = ladder?.groupValues?.get(2),
             percentage = ladder?.let { it.groupValues[3].toIntOrNull() ?: 100 },
-            day =
+            date =
                 DATE
                     .find(text)
                     ?.groupValues

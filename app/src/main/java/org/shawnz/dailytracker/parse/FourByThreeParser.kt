@@ -8,8 +8,8 @@ import java.util.Locale
 /**
  * A 4×3 result.
  *
- * @property points Null when the board ran out of guesses, where no score is printed. Negative
- *   for a [ruleBreaker], which still solves the board.
+ * @property points The score. Null when the board ran out of guesses, where no score is printed.
+ *   Negative for a [ruleBreaker], which still solves the board.
  * @property calledIt The hub word was named correctly before the first guess.
  * @property calledWrongHub The hub word was named wrongly before the first guess, which fails the
  *   board.
@@ -23,10 +23,12 @@ data class FourByThreeResult(
     val calledIt: Boolean = false,
     val calledWrongHub: Boolean = false,
     val ruleBreaker: Boolean = false,
-    override val day: LocalDate? = null,
+    val date: LocalDate? = null,
     val grid: List<String> = emptyList(),
 ) : GameResult {
-    override val success: Boolean get() = points != null && !calledWrongHub
+    override val puzzle: PuzzleIdentity get() = date?.let(PuzzleIdentity::Date) ?: PuzzleIdentity.UnidentifiedDaily
+
+    val success: Boolean get() = points != null && !calledWrongHub
 }
 
 /**
@@ -102,7 +104,7 @@ object FourByThreeParser : ResultParser<FourByThreeResult> {
             calledIt = text.contains("Called It", ignoreCase = true),
             calledWrongHub = WRONG_HUB.containsMatchIn(text),
             ruleBreaker = text.contains("RULE BREAKER", ignoreCase = true),
-            day =
+            date =
                 DATE
                     .find(text)
                     ?.groupValues

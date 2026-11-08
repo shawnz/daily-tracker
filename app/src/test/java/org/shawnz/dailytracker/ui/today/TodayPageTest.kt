@@ -1,6 +1,7 @@
 package org.shawnz.dailytracker.ui.today
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.catalog.CatalogGame
@@ -55,5 +56,51 @@ class TodayPageTest {
         val page = inputs(cluesBySam, chosen = october18).page(now)
 
         assertEquals(october17, page.day)
+    }
+
+    private val raddle = testGame(id = 3, source = CatalogGame.RADDLE)
+    private val catfishing = testGame(id = 4, source = CatalogGame.CATFISHING)
+    private val noonInChicago = LocalDateTime.parse("2026-10-17T12:00").atZone(ZoneId.of("America/Chicago"))
+
+    /** The rows on the page for [day], with no results. */
+    private fun rows(
+        day: LocalDate,
+        vararg games: Game,
+    ) = Inputs(games = games.toList(), recent = emptyList(), earliestPlayed = day, chosen = day)
+        .page(noonInChicago)
+        .state(emptyList())
+        .rows
+
+    // With an unknown rollover time, the 18th's puzzle may not be out yet.
+    @Test
+    fun `a tap on an unplayed puzzle opens its own page`() {
+        assertEquals("https://raddle.quest/2026/10/18/", rows(october18, raddle).single().siteUrl)
+    }
+
+    @Test
+    fun `a tap on an unplayed puzzle opens the game's page when its day is the only possible puzzle day`() {
+        assertEquals(catfishing.url, rows(october17, catfishing).single().siteUrl)
+    }
+
+    @Test
+    fun `a tap on an unplayed puzzle with no page of its own opens the game's page`() {
+        assertEquals(cluesBySam.url, rows(october17, cluesBySam).single().siteUrl)
+    }
+
+    @Test
+    fun `a tap on a missed puzzle opens its own page`() {
+        assertEquals("https://catfishing.net/game/845", rows(october16, catfishing).single().siteUrl)
+    }
+
+    @Test
+    fun `a tap on a missed puzzle with no page of its own opens only the detail page`() {
+        assertNull(rows(october16, cluesBySam).single().siteUrl)
+    }
+
+    // The game with an unknown rollover time has the 18th as a possible puzzle day, so the page for
+    // the 18th can be shown.
+    @Test
+    fun `a tap on an unreleased puzzle opens only the detail page`() {
+        assertNull(rows(october18, raddle, catfishing).single { it.game == catfishing }.siteUrl)
     }
 }

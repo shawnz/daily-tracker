@@ -37,7 +37,8 @@ class CluesBySamParserTest {
     fun `both forms give the same day, difficulty and time`() {
         for (text in listOf(sentence, heading)) {
             val result = CluesBySamParser.parse(text)!!
-            assertEquals(LocalDate.of(2026, 9, 25), result.day)
+            assertEquals(LocalDate.of(2026, 9, 25), result.date)
+            assertEquals(PuzzleIdentity.Date(LocalDate.of(2026, 9, 25)), result.puzzle)
             assertEquals("Hard", result.difficulty)
             assertEquals(188, result.seconds)
         }
@@ -48,14 +49,6 @@ class CluesBySamParserTest {
         for (text in listOf(sentence, heading)) {
             assertEquals(5, CluesBySamParser.parse(text)!!.grid.size)
         }
-    }
-
-    // A wrong answer is not accepted, so the wording of the two forms doesn't indicate how the
-    // board went.
-    @Test
-    fun `both forms count as solved`() {
-        assertTrue(CluesBySamParser.parse(sentence)!!.success)
-        assertTrue(CluesBySamParser.parse(heading)!!.success)
     }
 
     // Wrong guesses and hints are logged in the tiles, so a board is not all green.
@@ -76,7 +69,6 @@ class CluesBySamParserTest {
         assertEquals(5, result.grid.size)
         assertEquals("🟠🟨🟩🟩", result.grid[2])
         assertEquals(74, result.seconds)
-        assertTrue(result.success)
     }
 
     // 🟩 correct, 🟨 at least one mistake, 🟡 a hint, 🟠 a double hint.
@@ -120,7 +112,7 @@ class CluesBySamParserTest {
         for (text in texts) {
             val result = CluesBySamParser.parse(text)!!
             assertNull(result.seconds)
-            assertEquals(LocalDate.of(2026, 9, 25), result.day)
+            assertEquals(LocalDate.of(2026, 9, 25), result.date)
         }
     }
 
@@ -147,13 +139,13 @@ class CluesBySamParserTest {
             )!!
         assertNull(result.difficulty)
         assertEquals(188, result.seconds)
-        assertEquals(LocalDate.of(2026, 9, 25), result.day)
+        assertEquals(LocalDate.of(2026, 9, 25), result.date)
     }
 
     @Test
     fun `an ordinal other than th is read`() {
         val result = CluesBySamParser.parse("#CluesBySam - Sep 1st 2026 (Hard)\n01:02\n$board")!!
-        assertEquals(LocalDate.of(2026, 9, 1), result.day)
+        assertEquals(LocalDate.of(2026, 9, 1), result.date)
         assertEquals(62, result.seconds)
     }
 

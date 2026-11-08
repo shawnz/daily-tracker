@@ -1,20 +1,20 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
 /**
  * A Pinpoint result.
  *
  * @property guesses The guesses taken. Null for a failed play.
  * @property total The guesses allowed.
+ * @property success Whether the puzzle was solved. Null when the text doesn't show it.
  */
 data class PinpointResult(
-    override val puzzleNumber: String?,
+    val number: Int,
     val guesses: Int?,
     val total: Int,
-    override val success: Boolean?,
-    override val day: LocalDate? = null,
-) : GameResult
+    val success: Boolean?,
+) : GameResult {
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.DailyNumber(number)
+}
 
 /**
  * Reads the Pinpoint share text, which has one of two layouts.
@@ -39,9 +39,6 @@ data class PinpointResult(
  * From #1,000 the number is written with the locale's digit grouping.
  */
 object PinpointParser : ResultParser<PinpointResult> {
-    // Puzzle #1, worked back from the puzzle ID shown for one day.
-    private val FIRST_DAY: LocalDate = LocalDate.of(2024, 5, 1)
-
     private val header = Regex("""Pinpoint\s*#($GROUPED_NUMBER)""", RegexOption.IGNORE_CASE)
     private val score = Regex("""\(\s*(\d+|X)\s*/\s*(\d+)\s*\)""", RegexOption.IGNORE_CASE)
     private val guessLine = Regex("""\|\s*\d+%\s*match(\s*📌)?""", RegexOption.IGNORE_CASE)
@@ -50,7 +47,7 @@ object PinpointParser : ResultParser<PinpointResult> {
 
     override fun parse(text: String): PinpointResult? {
         val found = header.find(text) ?: return null
-        val number = groupedNumberValue(found.groupValues[1])?.toString()
+        val number = groupedNumberValue(found.groupValues[1]) ?: return null
         val scored = score.find(text)
         val lines = guessLine.findAll(text).toList()
         val pinned = lines.any { it.groupValues[1].isNotEmpty() }
@@ -61,7 +58,7 @@ object PinpointParser : ResultParser<PinpointResult> {
                 else -> null
             }
         return PinpointResult(
-            puzzleNumber = number,
+            number = number,
             guesses = guesses,
             total = scored?.groupValues?.get(2)?.toIntOrNull() ?: 5,
             success =
@@ -70,7 +67,6 @@ object PinpointParser : ResultParser<PinpointResult> {
                     lines.isNotEmpty() -> pinned
                     else -> null
                 },
-            day = dayFromNumber(number, FIRST_DAY),
         )
     }
 }

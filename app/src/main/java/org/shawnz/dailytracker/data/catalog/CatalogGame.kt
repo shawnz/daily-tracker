@@ -9,6 +9,7 @@ import org.shawnz.dailytracker.parse.CatfishingParser
 import org.shawnz.dailytracker.parse.CluesBySamParser
 import org.shawnz.dailytracker.parse.ConnectionsParser
 import org.shawnz.dailytracker.parse.CrossclimbParser
+import org.shawnz.dailytracker.parse.DailyNumbering
 import org.shawnz.dailytracker.parse.FoodGuessrParser
 import org.shawnz.dailytracker.parse.FourBySixParser
 import org.shawnz.dailytracker.parse.FourByThreeParser
@@ -31,9 +32,13 @@ import org.shawnz.dailytracker.parse.TimeGuessrParser
 import org.shawnz.dailytracker.parse.WendParser
 import org.shawnz.dailytracker.parse.WordleParser
 import org.shawnz.dailytracker.parse.ZipParser
+import org.shawnz.dailytracker.parse.resolveDay
 import org.shawnz.dailytracker.time.RolloverRule
 import org.shawnz.dailytracker.time.RolloverZone
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * The app's built-in games. A user can also add their own.
@@ -41,7 +46,10 @@ import java.time.LocalTime
  * @property otherUrls Alternate URLs for the game. `*` matches any characters within one path
  *   segment.
  * @property hidden Whether the game is left out of the list of games to add.
- * @property parser Null when no parser exists for this game.
+ * @property parser The parser for the game's share text. Null when the game has none.
+ * @property numbering The puzzle number of each puzzle day. Set only for numbers verified as one
+ *   a day with no gaps.
+ * @property puzzlePage The page for each day's puzzle. Null when the game has none.
  */
 enum class CatalogGame(
     override val title: String,
@@ -52,6 +60,8 @@ enum class CatalogGame(
     @param:DrawableRes val logo: Int? = null,
     val hidden: Boolean = false,
     val parser: ResultParser<*>? = null,
+    val numbering: DailyNumbering? = null,
+    val puzzlePage: PuzzlePage? = null,
     val rolloverRule: RolloverRule,
 ) : GameSource {
     WORDLE(
@@ -62,6 +72,7 @@ enum class CatalogGame(
         publisher = "The New York Times",
         logo = R.drawable.logo_wordle,
         parser = WordleParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2021, 6, 19), firstNumber = 0),
         rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
@@ -72,6 +83,7 @@ enum class CatalogGame(
         publisher = "The New York Times",
         logo = R.drawable.logo_connections,
         parser = ConnectionsParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2023, 6, 12)),
         rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
@@ -82,6 +94,7 @@ enum class CatalogGame(
         publisher = "The New York Times",
         logo = R.drawable.logo_strands,
         parser = StrandsParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2024, 3, 4)),
         rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
@@ -101,6 +114,7 @@ enum class CatalogGame(
         otherUrls = listOf("https://kindahard.golf"),
         publisher = "Mighty Pebble Games",
         parser = KindaHardGolfParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2025, 4, 2), firstNumber = 0),
         // The puzzle day is the UTC date 4 hours earlier, so it changes at 04:00 UTC all year.
         rolloverRule = RolloverRule(RolloverZone.Named("UTC-04:00"), LocalTime.MIDNIGHT),
     ),
@@ -113,6 +127,7 @@ enum class CatalogGame(
         publisher = "Hank Green",
         logo = R.drawable.logo_hankgreen,
         parser = FourByThreeParser,
+        puzzlePage = PuzzlePage.ByDate { "https://www.hankgreen.com/fourbythree/#d=$it" },
         rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
@@ -164,6 +179,7 @@ enum class CatalogGame(
         url = "https://timeguessr.com/",
         otherUrls = listOf("https://timeguessr.com/play?mode=daily"),
         parser = TimeGuessrParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2023, 6, 1)),
         rolloverRule = RolloverRule(RolloverZone.Named("UTC-07:00"), LocalTime.MIDNIGHT),
     ),
 
@@ -194,6 +210,8 @@ enum class CatalogGame(
         publisher = "The Mystery League",
         logo = R.drawable.logo_raddle,
         parser = RaddleParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2025, 2, 25)),
+        puzzlePage = PuzzlePage.ByDate { "https://raddle.quest/${it.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"))}/" },
         // Each puzzle goes live at no fixed hour in the Chicago evening before its date.
         rolloverRule = RolloverRule(RolloverZone.Named("America/Chicago"), time = null),
     ),
@@ -205,6 +223,8 @@ enum class CatalogGame(
                 "people, places, and things to guess every day.",
         url = "https://catfishing.net/",
         parser = CatfishingParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2024, 6, 24)),
+        puzzlePage = PuzzlePage.ByNumber { "https://catfishing.net/game/$it" },
         rolloverRule = RolloverRule.LOCAL_MIDNIGHT,
     ),
 
@@ -215,6 +235,7 @@ enum class CatalogGame(
                 "can you go?",
         url = "https://krillion.io/",
         parser = KrillionParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2026, 7, 16)),
         rolloverRule = RolloverRule.NYC_MIDNIGHT,
     ),
 
@@ -234,11 +255,13 @@ enum class CatalogGame(
         url = "https://www.parseword.com/",
         publisher = "Josh Wardle",
         parser = ParsewordParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2026, 1, 29)),
         // The puzzle day is the UTC date 8 hours earlier, so it changes at 08:00 UTC all year.
         rolloverRule = RolloverRule(RolloverZone.Named("UTC-08:00"), LocalTime.MIDNIGHT),
     ),
 
-    // Every LinkedIn game rolls over at midnight Pacific.
+    // Every LinkedIn game rolls over at midnight Pacific. Each one's puzzle #1 is worked back from
+    // the puzzle IDs shown for one day.
     QUEENS(
         title = "Queens",
         description =
@@ -249,6 +272,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_queens,
         parser = QueensParser,
+        numbering = DailyNumbering.FROM_MAY_1_2024,
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
@@ -262,6 +286,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_tango,
         parser = TangoParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2024, 10, 8)),
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
@@ -275,6 +300,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_zip,
         parser = ZipParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2025, 3, 18)),
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
@@ -288,6 +314,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_pinpoint,
         parser = PinpointParser,
+        numbering = DailyNumbering.FROM_MAY_1_2024,
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
@@ -301,6 +328,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_crossclimb,
         parser = CrossclimbParser,
+        numbering = DailyNumbering.FROM_MAY_1_2024,
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
@@ -312,6 +340,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_mini_sudoku,
         parser = MiniSudokuParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2025, 8, 12)),
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
@@ -325,6 +354,7 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_wend,
         parser = WendParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2026, 6, 9)),
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
@@ -338,13 +368,37 @@ enum class CatalogGame(
         publisher = "LinkedIn",
         logo = R.drawable.logo_patches,
         parser = PatchesParser,
+        numbering = DailyNumbering(firstDay = LocalDate.of(2026, 3, 18)),
         rolloverRule = RolloverRule.LA_MIDNIGHT,
     ),
 
     ;
 
+    init {
+        require(puzzlePage !is PuzzlePage.ByNumber || numbering != null) {
+            "$name has a page for each puzzle number and no numbering"
+        }
+    }
+
     /** Every address for this game, [url] first. */
     val urls: List<String> get() = listOf(url) + otherUrls
+
+    /** Returns the address of the page for [day]'s puzzle, or null when the game has none. */
+    fun dayUrl(day: LocalDate): String? =
+        when (val page = puzzlePage) {
+            null -> null
+            is PuzzlePage.ByDate -> page.url(day)
+            is PuzzlePage.ByNumber -> numbering?.numberOn(day)?.let(page.url)
+        }
+
+    /**
+     * Returns the puzzle day of the share [text] at [now]. Null when the text doesn't parse or
+     * has no known day, or when its day is after the last possible puzzle day.
+     */
+    fun dayIn(
+        text: String,
+        now: ZonedDateTime = ZonedDateTime.now(),
+    ): LocalDate? = parser?.parse(text)?.puzzle?.resolveDay(numbering, rolloverRule.possiblePuzzleDays(now).endInclusive)
 
     fun toEntity(sortOrder: Int) = GameEntity(catalogGame = this, sortOrder = sortOrder)
 }

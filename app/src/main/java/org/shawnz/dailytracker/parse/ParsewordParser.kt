@@ -1,14 +1,11 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
-/** The day of puzzle #1. There is one puzzle a day. */
-private val FIRST_DAY: LocalDate = LocalDate.of(2026, 1, 29)
-
 /**
  * A Parseword result.
  *
- * @property seconds Null when the text doesn't include a time.
+ * @property number The daily's number. Null for a puzzle outside the daily run, which has an id in
+ *   place of a number.
+ * @property seconds The time taken, in seconds. Null when the text doesn't include a time.
  * @property assists The number of hints taken. 0 for a perfect run or one with no assists, and
  *   null when the text doesn't give a number.
  * @property secretsFound The number of secrets found, or of eggs found in an Egg Hunt.
@@ -16,7 +13,7 @@ private val FIRST_DAY: LocalDate = LocalDate.of(2026, 1, 29)
  *   default or relaxed difficulty.
  */
 data class ParsewordResult(
-    override val puzzleNumber: String?,
+    val number: Int?,
     val seconds: Int?,
     val perfect: Boolean,
     val assists: Int?,
@@ -26,12 +23,7 @@ data class ParsewordResult(
     val learnMode: Boolean = false,
     val challengeMode: Boolean = false,
 ) : GameResult {
-    /** Share text exists only for a finished puzzle. */
-    override val success: Boolean get() = true
-
-    /** A puzzle with an id in place of a number is outside the daily run and has no day. */
-    override val day: LocalDate?
-        get() = dayFromNumber(puzzleNumber, FIRST_DAY)
+    override val puzzle: PuzzleIdentity get() = number?.let(PuzzleIdentity::DailyNumber) ?: PuzzleIdentity.NotDaily
 
     /** A puzzle finished inside a minute is marked with a lightning bolt. */
     val underAMinute: Boolean get() = seconds != null && seconds <= 60
@@ -76,10 +68,7 @@ object ParsewordParser : ResultParser<ParsewordResult> {
         val perfect = PERFECT.containsMatchIn(text)
         val eggHunt = EGG_HUNT.containsMatchIn(text)
         return ParsewordResult(
-            puzzleNumber =
-                header.groupValues[1]
-                    .ifEmpty { header.groupValues[2] }
-                    .ifEmpty { null },
+            number = header.groupValues[1].toIntOrNull(),
             seconds =
                 TIME.find(text)?.let {
                     val minutes = it.groupValues[1].toIntOrNull() ?: 0

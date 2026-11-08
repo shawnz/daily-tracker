@@ -1,10 +1,5 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
-/** The day of puzzle #1. There is one puzzle a day. */
-private val FIRST_DAY: LocalDate = LocalDate.of(2023, 6, 12)
-
 /** The board ends at the fourth mistake. */
 private const val MAX_MISTAKES = 4
 
@@ -17,17 +12,16 @@ private const val MAX_MISTAKES = 4
  * @property grid The guesses, one string per row, in the order they were made.
  */
 data class ConnectionsResult(
-    override val puzzleNumber: String?,
+    val number: Int,
     val grid: List<String> = emptyList(),
 ) : GameResult {
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.DailyNumber(number)
+
     val groupsSolved: Int get() = grid.count { isOneColour(it) }
 
     val mistakes: Int get() = grid.count { !isOneColour(it) }
 
-    override val success: Boolean get() = mistakes < MAX_MISTAKES
-
-    override val day: LocalDate?
-        get() = dayFromNumber(puzzleNumber, FIRST_DAY)
+    val success: Boolean get() = mistakes < MAX_MISTAKES
 }
 
 /**
@@ -53,9 +47,15 @@ object ConnectionsParser : ResultParser<ConnectionsResult> {
     override fun matches(text: String): Boolean = NAME.containsMatchIn(text) && NUMBER.containsMatchIn(text)
 
     override fun parse(text: String): ConnectionsResult? {
-        if (!matches(text)) return null
+        if (!NAME.containsMatchIn(text)) return null
+        val number =
+            NUMBER
+                .find(text)
+                ?.groupValues
+                ?.get(1)
+                ?.toIntOrNull() ?: return null
         return ConnectionsResult(
-            puzzleNumber = NUMBER.find(text)?.groupValues?.get(1),
+            number = number,
             grid =
                 text
                     .lineSequence()

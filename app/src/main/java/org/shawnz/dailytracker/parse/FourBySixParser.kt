@@ -1,15 +1,14 @@
 package org.shawnz.dailytracker.parse
 
 import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters
 
 /**
  * A 4×6 result.
  *
  * @property medal The game's own emoji for how the board was cleared. 🛟 spoiled, 💯 perfect,
  *   🥇 within par, 🥈 within two of par, ✅ otherwise. 🥇 and 🥈 need a run without tools.
- * @property streakDays Null below two days, where it is not printed.
+ * @property streakDays The streak in days, as printed. Null below two days, where it is not
+ *   printed.
  * @property grid The shelves, one string per row.
  */
 data class FourBySixResult(
@@ -19,11 +18,8 @@ data class FourBySixResult(
     val points: Int?,
     val streakDays: Int?,
     val grid: List<String> = emptyList(),
-    override val day: LocalDate? = null,
+    override val puzzle: PuzzleIdentity,
 ) : GameResult {
-    /** Share text exists only for a cleared board. */
-    override val success: Boolean get() = true
-
     /** The board was cleared after the answer was shown. */
     val spoiled: Boolean get() = medal == "🛟"
 
@@ -46,8 +42,7 @@ data class FourBySixResult(
  *
  * The weekday is the board's, set when the page loads. The month and the day of the month are
  * the clock's when the text is built, so they are later than the board's day when the page was
- * open past midnight. The day is the header's date, moved back to the header's weekday. The
- * year comes from [monthAndDayValue].
+ * open past midnight. The day is the header's date, moved back to the header's weekday.
  *
  * The streak is shown from two days up.
  */
@@ -65,13 +60,7 @@ object FourBySixParser : ResultParser<FourBySixResult> {
 
     override fun matches(text: String): Boolean = HEADER.containsMatchIn(text)
 
-    override fun parse(text: String): FourBySixResult? = parse(text, LocalDate.now())
-
-    /** Parses [text] as if read on [today]. */
-    fun parse(
-        text: String,
-        today: LocalDate,
-    ): FourBySixResult? {
+    override fun parse(text: String): FourBySixResult? {
         if (!HEADER.containsMatchIn(text)) return null
         val moves = MOVES.find(text)
         return FourBySixResult(
@@ -96,15 +85,12 @@ object FourBySixParser : ResultParser<FourBySixResult> {
                     .map { it.trim() }
                     .filter { isGridRow(it, TILES) }
                     .toList(),
-            day =
+            puzzle =
                 DATE.find(text)?.destructured?.let { (weekday, monthAndDay) ->
-                    monthAndDayValue(monthAndDay, today)
-                        ?.with(
-                            TemporalAdjusters.previousOrSame(
-                                DayOfWeek.of(WEEKDAYS.indexOf(weekday) + 1),
-                            ),
-                        )
-                },
+                    monthAndDayValue(monthAndDay)?.let {
+                        PuzzleIdentity.WeekdayOnOrBefore(DayOfWeek.of(WEEKDAYS.indexOf(weekday) + 1), it)
+                    }
+                } ?: PuzzleIdentity.UnidentifiedDaily,
         )
     }
 }

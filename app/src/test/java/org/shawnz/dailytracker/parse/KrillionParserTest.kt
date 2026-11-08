@@ -38,7 +38,7 @@ class KrillionParserTest {
     @Test
     fun `reads the number, the score and every prompt`() {
         val result = KrillionParser.parse(played)!!
-        assertEquals("61", result.puzzleNumber)
+        assertEquals(61, result.number)
         assertEquals(150, result.score)
         assertEquals("🐟🐟🐟🫧🐟🫧🫧", result.emoji)
         assertEquals(7, result.prompts)
@@ -63,7 +63,7 @@ class KrillionParserTest {
     @Test
     fun `a share reflowed onto one line reads the same`() {
         val result = KrillionParser.parse("Krillion #61 🦐 150 🐟🐟🐟🫧🐟🫧🫧")!!
-        assertEquals("61", result.puzzleNumber)
+        assertEquals(61, result.number)
         assertEquals(150, result.score)
         assertEquals("🐟🐟🐟🫧🐟🫧🫧", result.emoji)
     }
@@ -78,18 +78,8 @@ class KrillionParserTest {
             KrillionParser.parse(
                 "Krillion ⟲ #30 🦐\n210\n\n🐟🐟🐟🐟🐟🐟🐟\n\nhttps://krillion.io/archive/30",
             )!!
-        assertTrue(archive.archive)
+        assertEquals(30, archive.number)
         assertEquals("🐟🐟🐟🐟🐟🐟🐟", archive.emoji)
-    }
-
-    // Day one was 2026-07-16.
-    @Test
-    fun `a day number is the day it was set`() {
-        assertEquals(LocalDate.of(2026, 9, 14), KrillionParser.parse(played)!!.day)
-        assertEquals(
-            LocalDate.of(2026, 7, 16),
-            KrillionParser.parse("Krillion #1 🦐\n70\n\n🫧🫧🫧🫧🫧🫧🫧")!!.day,
-        )
     }
 
     // 155 is the lowest Schooler score a day can reach, because every tier is worth a multiple
@@ -124,47 +114,37 @@ class KrillionParserTest {
         assertEquals("Plankton", result.band)
     }
 
-    @Test
-    fun `there is no win or loss`() {
-        assertNull(KrillionParser.parse(played)!!.success)
-    }
-
     // An archive day and a run outside the daily have their own sign before the number.
     @Test
-    fun `an archive day is marked and still dated`() {
+    fun `an archive day is still a daily`() {
         val result = KrillionParser.parse("Krillion ⟲ #30 🦐\n210\n\n🐟🐟🐟🐟🐟🐟🐟")!!
-        assertTrue(result.archive)
-        assertEquals(LocalDate.of(2026, 8, 14), result.day)
+        assertEquals(PuzzleIdentity.DailyNumber(30), result.puzzle)
     }
 
     @Test
-    fun `an unlimited run is numbered but not dated`() {
+    fun `an unlimited run is outside the daily series`() {
         val result = KrillionParser.parse("Krillion ∞ #5 🦐\n300\n\n🦑🦑🦑🦑🦑⬛⬛")!!
-        assertTrue(result.unlimited)
-        assertEquals("5", result.puzzleNumber)
+        assertNull(result.number)
+        assertEquals(PuzzleIdentity.NotDaily, result.puzzle)
         assertEquals(300, result.score)
         assertEquals("🦑🦑🦑🦑🦑⬛⬛", result.emoji)
-        assertNull(result.day)
     }
 
     @Test
-    fun `a themed pack run is numbered but not dated`() {
+    fun `a themed pack run is outside the daily series`() {
         val movies =
             KrillionParser.parse(
                 "Krillion 🎬 #5 🦐\n145\n\n🏮🐟🫧🫧🫧⬛⬛\n\nhttps://krillion.io/movies?game=5",
             )!!
-        assertTrue(movies.unlimited)
-        assertFalse(movies.archive)
-        assertEquals("5", movies.puzzleNumber)
+        assertNull(movies.number)
+        assertEquals(PuzzleIdentity.NotDaily, movies.puzzle)
         assertEquals(145, movies.score)
         assertEquals("🏮🐟🫧🫧🫧⬛⬛", movies.emoji)
-        assertNull(movies.day)
 
         for (badge in listOf("🏆", "🧭", "✒️")) {
             val result = KrillionParser.parse("Krillion $badge #2 🦐\n70\n\n🫧🫧🫧🫧🫧🫧🫧")!!
-            assertTrue(result.unlimited, badge)
+            assertEquals(PuzzleIdentity.NotDaily, result.puzzle, badge)
             assertEquals(70, result.score, badge)
-            assertNull(result.day, badge)
         }
     }
 

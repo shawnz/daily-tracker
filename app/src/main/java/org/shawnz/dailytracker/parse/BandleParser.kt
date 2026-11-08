@@ -11,14 +11,16 @@ package org.shawnz.dailytracker.parse
  * @property bonusAsked Bonus rounds asked. Null when none was shown.
  */
 data class BandleResult(
-    override val puzzleNumber: String?,
+    val number: Int,
     val step: Int?,
     val instruments: Int?,
     val emoji: String = "",
     val bonusWon: Int? = null,
     val bonusAsked: Int? = null,
 ) : GameResult {
-    override val success: Boolean get() = step != null
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.DailyNumber(number)
+
+    val success: Boolean get() = step != null
 }
 
 /**
@@ -68,6 +70,7 @@ object BandleParser : ResultParser<BandleResult> {
 
     override fun parse(text: String): BandleResult? {
         val header = HEADER.find(text) ?: return null
+        val number = header.groupValues[1].toIntOrNull() ?: return null
         val bonus =
             text
                 .lineSequence()
@@ -75,7 +78,7 @@ object BandleParser : ResultParser<BandleResult> {
                 .firstOrNull { line -> line.codePoints().anyMatch { it in BONUS_EMOJI } }
                 ?.let { COUNT.find(it) }
         return BandleResult(
-            puzzleNumber = header.groupValues[1],
+            number = number,
             step = header.groupValues[2].toIntOrNull(),
             instruments = header.groupValues[3].toIntOrNull(),
             emoji =

@@ -1,27 +1,19 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
 /**
  * A TimeGuessr daily result.
- *
- * A day is scored rather than won or lost, so [success] is always null.
  *
  * @property total The day's total score, out of 50,000.
  * @property rounds Each round's score, in the order played. Empty for the emoji format, which
  *   has no round scores.
  */
 data class TimeGuessrResult(
-    override val puzzleNumber: String,
+    val number: Int,
     val total: Int?,
     val rounds: List<Int> = emptyList(),
 ) : GameResult {
-    override val day: LocalDate?
-        get() = dayFromNumber(puzzleNumber, FIRST_DAY)
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.DailyNumber(number)
 }
-
-/** The day of daily #1. There is one daily a day. */
-private val FIRST_DAY: LocalDate = LocalDate.of(2023, 6, 1)
 
 /**
  * Reads the TimeGuessr daily share text, in the detailed or the emoji format.
@@ -59,8 +51,9 @@ object TimeGuessrParser : ResultParser<TimeGuessrResult> {
 
     override fun parse(text: String): TimeGuessrResult? {
         val header = HEADER.find(text) ?: return null
+        val number = header.groupValues[1].toIntOrNull() ?: return null
         return TimeGuessrResult(
-            puzzleNumber = header.groupValues[1],
+            number = number,
             total = header.groupValues[2].ifEmpty { null }?.let(::groupedNumberValue),
             rounds =
                 ROUND

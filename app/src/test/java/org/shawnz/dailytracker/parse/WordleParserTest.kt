@@ -6,28 +6,14 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.Arguments.arguments
-import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.ValueSource
-import java.time.LocalDate
 
 class WordleParserTest {
-    // Three readings across the run: launch day, one reported widely at the time, and one
-    // seen in the game five years later.
-    @ParameterizedTest(name = "{1} was published on {2}")
-    @MethodSource("publishedDays")
-    fun `a puzzle number is the day that puzzle was published`(
-        text: String,
-        header: String,
-        day: LocalDate,
-    ) {
-        assertEquals(day, WordleParser.parse(text)?.day)
-    }
-
     @Test
     fun `parses a solved puzzle and strips the thousands separator`() {
         val result = WordleParser.parse("Wordle 1,234 4/6\n\n$VINYL_IN_FOUR")!!
-        assertEquals("1234", result.puzzleNumber)
+        assertEquals(1234, result.number)
+        assertEquals(PuzzleIdentity.DailyNumber(1234), result.puzzle)
         assertEquals(4, result.guesses)
         assertFalse(result.hardMode)
         assertTrue(result.success)
@@ -38,8 +24,7 @@ class WordleParserTest {
     @ValueSource(strings = ["1.234", "1\u202F234", "1’234"])
     fun `reads a number grouped for another locale`(number: String) {
         val result = WordleParser.parse("Wordle $number 4/6\n\n$VINYL_IN_FOUR")!!
-        assertEquals("1234", result.puzzleNumber)
-        assertEquals(LocalDate.of(2024, 11, 4), result.day)
+        assertEquals(1234, result.number)
     }
 
     @Test
@@ -124,7 +109,7 @@ class WordleParserTest {
             🟩🟩🟩🟩🟩
             """.trimIndent()
         val result = WordleParser.parse(text)!!
-        assertEquals(LocalDate.of(2026, 9, 8), result.day)
+        assertEquals(1907, result.number)
         assertEquals(4, result.guesses)
         assertEquals("⬜🟨⬜🟨🟩", result.grid[1])
     }
@@ -148,7 +133,6 @@ class WordleParserTest {
         assertEquals(55, result.luck)
         assertEquals(3, result.guesses)
         assertEquals(3, result.grid.size)
-        assertEquals(LocalDate.of(2026, 10, 10), result.day)
     }
 
     @Test
@@ -168,25 +152,5 @@ class WordleParserTest {
     companion object {
         /** Puzzle 1,234, VINYL, solved on the fourth guess. */
         private const val VINYL_IN_FOUR = "⬛⬛⬛🟨⬛\n⬛🟨⬛⬛⬛\n⬛🟩🟩⬛🟨\n🟩🟩🟩🟩🟩"
-
-        @JvmStatic
-        fun publishedDays() =
-            listOf(
-                arguments(
-                    "Wordle 0 2/6\n\n⬛⬛🟨🟨⬛\n🟩🟩🟩🟩🟩",
-                    "Wordle 0",
-                    LocalDate.of(2021, 6, 19),
-                ),
-                arguments(
-                    "Wordle 500 3/6\n\n⬛⬛⬛🟨🟨\n⬛🟨🟨🟨🟨\n🟩🟩🟩🟩🟩",
-                    "Wordle 500",
-                    LocalDate.of(2022, 11, 1),
-                ),
-                arguments(
-                    "Wordle 1,907 4/6\n\n⬛⬛⬛🟨🟨\n⬛🟨⬛🟨🟩\n⬛🟩🟩🟩🟩\n🟩🟩🟩🟩🟩",
-                    "Wordle 1,907",
-                    LocalDate.of(2026, 9, 8),
-                ),
-            )
     }
 }

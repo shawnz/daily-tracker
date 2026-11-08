@@ -27,6 +27,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -131,6 +132,12 @@ internal fun GameDetailScreen(
                 },
                 actions = {
                     if (game != null) {
+                        IconButton(onClick = { CustomTabLauncher.launch(context, game.url, toolbarColor) }) {
+                            Icon(
+                                painterResource(R.drawable.ic_open_in_new),
+                                stringResource(R.string.detail_open_site),
+                            )
+                        }
                         IconButton(onClick = { viewModel.setReminders(!game.remindersEnabled) }) {
                             ReminderIcon(enabled = game.remindersEnabled)
                         }
@@ -184,19 +191,6 @@ internal fun GameDetailScreen(
         ) {
             item { GameHeader(game = game) }
 
-            item {
-                Button(
-                    onClick = { CustomTabLauncher.launch(context, game.url, toolbarColor) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(painterResource(R.drawable.ic_play_arrow), contentDescription = null)
-                    Text(
-                        stringResource(R.string.detail_play),
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
-            }
-
             item(key = "day") {
                 DayCard(
                     modifier = Modifier.padding(top = 16.dp),
@@ -207,6 +201,7 @@ internal fun GameDetailScreen(
                     onDraftChange = { draft = it },
                     onStep = { viewModel.stepDay(it) },
                     onPickDay = { pickingDay = true },
+                    onOpen = { CustomTabLauncher.launch(context, it, toolbarColor) },
                     onEdit = {
                         draft = state.selectedEntry?.rawShareText.orEmpty()
                         editing = true
@@ -231,8 +226,8 @@ internal fun GameDetailScreen(
             val progress = state.progress
             if (progress != null && progress.plays > 0) {
                 item(key = "progress") {
-                    // Aligned to the page margin, like the header and Play, so these figures
-                    // start to the left of the grid inside the card above.
+                    // Aligned to the page margin, like the header, so these figures start to
+                    // the left of the grid inside the card above.
                     Progress(
                         progress = progress,
                         game = game,
@@ -336,6 +331,7 @@ private fun DayCard(
     onDraftChange: (String) -> Unit,
     onStep: (Long) -> Unit,
     onPickDay: () -> Unit,
+    onOpen: (url: String) -> Unit,
     onEdit: () -> Unit,
     onCancelEdit: () -> Unit,
     onSave: () -> Unit,
@@ -395,6 +391,19 @@ private fun DayCard(
                             modifier = Modifier.padding(start = 6.dp),
                         )
                     }
+                    state.puzzleUrl?.let { url ->
+                        TextButton(onClick = { onOpen(url) }) {
+                            Icon(
+                                painterResource(R.drawable.ic_open_in_new),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                stringResource(R.string.detail_open_puzzle),
+                                modifier = Modifier.padding(start = 6.dp),
+                            )
+                        }
+                    }
                     Spacer(Modifier.weight(1f))
                     TextButton(
                         onClick = onClear,
@@ -406,11 +415,33 @@ private fun DayCard(
                 }
             } else {
                 if (entry == null) {
-                    Text(
-                        stringResource(R.string.detail_nothing_recorded),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    val playUrl = state.playUrl
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(
+                                if (playUrl != null) R.string.today_not_played else R.string.detail_nothing_recorded,
+                            ),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (playUrl != null) {
+                            OutlinedButton(onClick = { onOpen(playUrl) }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_play_arrow),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    stringResource(R.string.detail_play),
+                                    modifier = Modifier.padding(start = 6.dp),
+                                )
+                            }
+                        }
+                    }
                 }
 
                 if (game.parser == null) {

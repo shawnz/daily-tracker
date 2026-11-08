@@ -3,21 +3,22 @@ package org.shawnz.dailytracker.parse
 /**
  * A Hued result.
  *
- * A day is scored rather than won or lost, so [success] is always null. A puzzle can be served
- * again on a later day, so [day] is always null.
- *
+ * @property number The puzzle's number. A puzzle can be served again on a later day, so the
+ *   number doesn't determine the puzzle day.
  * @property accuracy The best guess's match to the color, as a percentage.
  * @property colorName The name of the day's color.
  * @property guesses How many guesses were made, out of three.
  * @property hintUsed Whether the hint photo was shown.
  */
 data class HuedResult(
-    override val puzzleNumber: String,
+    val number: Int,
     val accuracy: Int?,
     val colorName: String?,
     val guesses: Int?,
     val hintUsed: Boolean,
-) : GameResult
+) : GameResult {
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.UnidentifiedDaily
+}
 
 /**
  * Reads the Hued share text.
@@ -46,6 +47,7 @@ object HuedParser : ResultParser<HuedResult> {
 
     override fun parse(text: String): HuedResult? {
         val header = HEADER.find(text) ?: return null
+        val number = header.groupValues[1].toIntOrNull() ?: return null
         val row =
             text
                 .substring(header.range.last + 1)
@@ -53,7 +55,7 @@ object HuedParser : ResultParser<HuedResult> {
                 .map { it.trim() }
                 .firstOrNull { isGridRow(it, TILES) }
         return HuedResult(
-            puzzleNumber = header.groupValues[1],
+            number = number,
             accuracy = header.groupValues[2].toIntOrNull(),
             colorName = header.groupValues[3].trim().ifEmpty { null },
             guesses =

@@ -20,7 +20,8 @@ class StrandsParserTest {
     @Test
     fun `reads the number and the theme`() {
         val result = StrandsParser.parse(played)!!
-        assertEquals("925", result.puzzleNumber)
+        assertEquals(925, result.number)
+        assertEquals(PuzzleIdentity.DailyNumber(925), result.puzzle)
         assertEquals("OH MY GOSH!!", result.clue)
     }
 
@@ -48,21 +49,6 @@ class StrandsParserTest {
         val result = StrandsParser.parse(played)!!
         assertEquals(2, result.emoji.size)
         assertEquals("🔵🔵🔵🔵", result.emoji.last())
-    }
-
-    // Puzzle one was published on 2024-03-04.
-    @Test
-    fun `a puzzle number is the day that puzzle was published`() {
-        assertEquals(LocalDate.of(2026, 9, 14), StrandsParser.parse(played)!!.day)
-        assertEquals(
-            LocalDate.of(2024, 3, 4),
-            StrandsParser.parse("Strands #1\n“Mark my words”\n🔵🔵🔵🟡\n🔵🔵🔵")!!.day,
-        )
-    }
-
-    @Test
-    fun `the board is always finished, so there is no loss`() {
-        assertTrue(StrandsParser.parse(played)!!.success)
     }
 
     @Test
@@ -128,7 +114,7 @@ class StrandsParserTest {
             StrandsParser.parse(
                 "Archive September 1, 2026\nStrands #912\n“Called by your calling”\n🔵🔵🟡🔵\n🔵🔵",
             )!!
-        assertEquals("912", result.puzzleNumber)
+        assertEquals(912, result.number)
         assertEquals(2, result.emoji.size)
     }
 

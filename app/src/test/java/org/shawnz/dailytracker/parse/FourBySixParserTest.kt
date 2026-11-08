@@ -5,7 +5,9 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.MonthDay
 
 class FourBySixParserTest {
     private val shelves =
@@ -59,26 +61,28 @@ class FourBySixParserTest {
     }
 
     @Test
-    fun `the day is the header's date in the year it was read`() {
-        val result = FourBySixParser.parse(solved, today = LocalDate.of(2026, 9, 14))!!
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+    fun `the header has the board's weekday and a date`() {
+        assertEquals(
+            PuzzleIdentity.WeekdayOnOrBefore(DayOfWeek.MONDAY, MonthDay.of(9, 14)),
+            FourBySixParser.parse(solved)!!.puzzle,
+        )
     }
 
     // The header as `buildShareText` writes it for Monday's board when the page is still open
     // on Tuesday: the weekday is the board's and the date is the clock's.
     @Test
-    fun `a board shared after midnight is filed on the board's weekday`() {
+    fun `a board shared after midnight is on the board's weekday`() {
         val text = solved.replace("Mon Sep 14", "Mon Sep 15")
-        val result = FourBySixParser.parse(text, today = LocalDate.of(2026, 9, 15))!!
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        val puzzle = FourBySixParser.parse(text)!!.puzzle
+        assertEquals(LocalDate.of(2026, 9, 14), puzzle.resolveDay(numbering = null, latest = LocalDate.of(2026, 9, 15)))
     }
 
     // The header as `buildShareText` writes it for the board of Thursday 31 December 2026.
     @Test
-    fun `a date later in the year than today is in the year before`() {
+    fun `a board from late in the year before is in that year`() {
         val text = solved.replace("Mon Sep 14", "Thu Dec 31")
-        val result = FourBySixParser.parse(text, today = LocalDate.of(2027, 1, 2))!!
-        assertEquals(LocalDate.of(2026, 12, 31), result.day)
+        val puzzle = FourBySixParser.parse(text)!!.puzzle
+        assertEquals(LocalDate.of(2026, 12, 31), puzzle.resolveDay(numbering = null, latest = LocalDate.of(2027, 1, 2)))
     }
 
     // 🛟 spoiled, 💯 perfect, 🥇 within par, 🥈 within two of par, ✅ otherwise.

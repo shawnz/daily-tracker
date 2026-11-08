@@ -37,7 +37,7 @@ class TimeGuessrParserTest {
     @Test
     fun `reads the number and the total`() {
         val result = TimeGuessrParser.parse(detailed)!!
-        assertEquals("1251", result.puzzleNumber)
+        assertEquals(1251, result.number)
         assertEquals(38283, result.total)
     }
 
@@ -52,16 +52,15 @@ class TimeGuessrParserTest {
         assertEquals(result.total, result.rounds.sum())
     }
 
-    // Daily 1251 is dated 2 November 2026 in the game's archive.
     @Test
-    fun `a daily number is the day that daily was published`() {
-        assertEquals(LocalDate.of(2026, 11, 2), TimeGuessrParser.parse(detailed)!!.day)
+    fun `a daily is identified by its number`() {
+        assertEquals(PuzzleIdentity.DailyNumber(1251), TimeGuessrParser.parse(detailed)!!.puzzle)
     }
 
     @Test
     fun `reads the emoji format, which has no round scores`() {
         val result = TimeGuessrParser.parse(emoji)!!
-        assertEquals("1251", result.puzzleNumber)
+        assertEquals(1251, result.number)
         assertEquals(38283, result.total)
         assertEquals(emptyList<Int>(), result.rounds)
     }
@@ -84,11 +83,6 @@ class TimeGuessrParserTest {
         val result = TimeGuessrParser.parse(detailed.replace(Regex("\n+"), " "))!!
         assertEquals(38283, result.total)
         assertEquals(5, result.rounds.size)
-    }
-
-    @Test
-    fun `a daily has no win or loss`() {
-        assertNull(TimeGuessrParser.parse(detailed)!!.success)
     }
 
     // Text from single-player and custom games, as built by the game's own code, has no number.

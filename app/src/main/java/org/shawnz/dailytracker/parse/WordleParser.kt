@@ -1,31 +1,25 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
 /**
  * A Wordle result.
  *
- * @property guesses Null when the puzzle was not solved.
+ * @property guesses How many guesses the puzzle took. Null when it was not solved.
  * @property grid The rows of coloured squares, in the order played.
  * @property skill The WordleBot skill score out of 99. Null when the text has no such score.
  * @property luck The WordleBot luck score out of 99. Null when the text has no such score.
  */
 data class WordleResult(
-    override val puzzleNumber: String?,
+    val number: Int,
     val guesses: Int?,
     val hardMode: Boolean,
     val grid: List<String> = emptyList(),
     val skill: Int? = null,
     val luck: Int? = null,
 ) : GameResult {
-    override val success: Boolean get() = guesses != null
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.DailyNumber(number)
 
-    override val day: LocalDate?
-        get() = dayFromNumber(puzzleNumber, LAUNCH_DAY, firstNumber = 0)
+    val success: Boolean get() = guesses != null
 }
-
-/** The day of puzzle #0. There is one puzzle a day. */
-private val LAUNCH_DAY: LocalDate = LocalDate.of(2021, 6, 19)
 
 /**
  * Reads the Wordle share text. The header has one of these forms:
@@ -64,10 +58,11 @@ object WordleParser : ResultParser<WordleResult> {
 
     override fun parse(text: String): WordleResult? {
         val m = HEADER.find(text) ?: return null
+        val number = groupedNumberValue(m.groupValues[1]) ?: return null
         val grade = m.groupValues[2].uppercase()
         val scores = BOT_SCORES.find(text, m.range.last)
         return WordleResult(
-            puzzleNumber = groupedNumberValue(m.groupValues[1])?.toString(),
+            number = number,
             guesses = if (grade == "X") null else grade.toIntOrNull(),
             hardMode = m.groupValues[3] == "*",
             grid =

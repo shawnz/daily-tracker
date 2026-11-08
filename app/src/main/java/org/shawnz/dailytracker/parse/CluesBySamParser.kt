@@ -24,12 +24,11 @@ private const val DOUBLE_HINT = 0x1F7E0
 data class CluesBySamResult(
     val seconds: Int?,
     val difficulty: String?,
-    override val day: LocalDate?,
+    val date: LocalDate?,
     val percentile: String? = null,
     val grid: List<String> = emptyList(),
 ) : GameResult {
-    /** A wrong answer is not accepted, so a board that was shared was solved. */
-    override val success: Boolean get() = true
+    override val puzzle: PuzzleIdentity get() = date?.let(PuzzleIdentity::Date) ?: PuzzleIdentity.UnidentifiedDaily
 
     /** People identified with no mistake and no hint. */
     val correct: Int get() = count(CORRECT)
@@ -97,7 +96,7 @@ object CluesBySamParser : ResultParser<CluesBySamResult> {
                     ?.groupValues
                     ?.get(1)
                     ?.trim(),
-            day = DATE.find(text)?.let { readDay(it.groupValues) },
+            date = DATE.find(text)?.let { readDay(it.groupValues) },
             percentile =
                 PERCENTILE
                     .find(text)

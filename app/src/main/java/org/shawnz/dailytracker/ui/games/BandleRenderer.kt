@@ -93,13 +93,11 @@ object BandleRenderer : GameRenderer<BandleResult> {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                result.puzzleNumber?.let {
-                    Text(
-                        "#$it",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    "#${result.number}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

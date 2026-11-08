@@ -27,7 +27,7 @@ class TodayShareTextTest {
     private fun row(
         game: Game,
         text: String?,
-    ) = GameRowState(game, PuzzleStatus.Done(EntryEntity(gameId = game.id, puzzleDay = day, rawShareText = text)))
+    ) = GameRowState(game, PuzzleStatus.Done(EntryEntity(gameId = game.id, puzzleDay = day, rawShareText = text)), siteUrl = null)
 
     private fun share(vararg rows: GameRowState) = todayShareText(rows.toList(), day, RuntimeEnvironment.getApplication().resources)
 
@@ -51,13 +51,18 @@ class TodayShareTextTest {
     fun `an unplayed game is left out`() {
         assertEquals(
             "Daily Tracker, Oct 6\n\nWordle: 1/6",
-            share(row(wordle, wordleText(day)), GameRowState(custom, PuzzleStatus.Unplayed(nextRollover = null))),
+            share(row(wordle, wordleText(day)), GameRowState(custom, PuzzleStatus.Unplayed(nextRollover = null), custom.url)),
         )
     }
 
     @Test
     fun `an unreleased game is left out`() {
-        val unreleased = GameRowState(custom, PuzzleStatus.Unreleased(Instant.parse("2026-10-07T04:00:00Z"), currentPuzzleUnplayed = false))
+        val unreleased =
+            GameRowState(
+                custom,
+                PuzzleStatus.Unreleased(Instant.parse("2026-10-07T04:00:00Z"), currentPuzzleUnplayed = false),
+                siteUrl = null,
+            )
         assertEquals(
             "Daily Tracker, Oct 6\n\nWordle: 1/6",
             share(row(wordle, wordleText(day)), unreleased),

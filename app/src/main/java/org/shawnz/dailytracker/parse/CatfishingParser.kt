@@ -3,18 +3,18 @@ package org.shawnz.dailytracker.parse
 /**
  * A Catfishing result.
  *
- * A day is scored rather than won or lost, so [success] is always null.
- *
  * @property score A point for each article named and half a point for each close guess.
  * @property total How many articles were shown, which is not always ten.
  * @property grid The board, one string per row.
  */
 data class CatfishingResult(
-    override val puzzleNumber: String?,
+    val number: Int,
     val score: Double?,
     val total: Int?,
     val grid: List<String> = emptyList(),
-) : GameResult
+) : GameResult {
+    override val puzzle: PuzzleIdentity get() = PuzzleIdentity.DailyNumber(number)
+}
 
 /**
  * Reads the Catfishing share text.
@@ -41,8 +41,9 @@ object CatfishingParser : ResultParser<CatfishingResult> {
     override fun parse(text: String): CatfishingResult? {
         val header = SCORE.find(text) ?: return null
         if (!NAME.containsMatchIn(text)) return null
+        val number = header.groupValues[1].toIntOrNull() ?: return null
         return CatfishingResult(
-            puzzleNumber = header.groupValues[1],
+            number = number,
             score = header.groupValues[2].toDoubleOrNull(),
             total = header.groupValues[3].toIntOrNull(),
             grid =

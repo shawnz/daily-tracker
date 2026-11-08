@@ -90,8 +90,8 @@ class RngdleParserTest {
     }
 
     @Test
-    fun `a roll is neither won nor lost`() {
-        assertNull(RngdleParser.parse(rolled)!!.success)
+    fun `a roll is an unidentified daily`() {
+        assertEquals(PuzzleIdentity.UnidentifiedDaily, RngdleParser.parse(rolled)!!.puzzle)
     }
 
     // A roll between the top half and the bottom tenth doesn't have a standing.

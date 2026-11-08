@@ -1,18 +1,9 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
-/** The parsed share text of one game, with the properties common to all games. */
-@Suppress("SameReturnValue") // Overrides in constructor parameters aren't counted.
+/** The parsed share text of one game. */
 interface GameResult {
-    /** The puzzle number stated in the text, or null when it doesn't state one. */
-    val puzzleNumber: String? get() = null
-
-    /** Whether the player solved the puzzle. Null when there is no win or loss, or the text doesn't show it. */
-    val success: Boolean? get() = null
-
-    /** The puzzle day stated in the text, or null when it doesn't state a day. */
-    val day: LocalDate? get() = null
+    /** What is known from the share text about which puzzle was played. */
+    val puzzle: PuzzleIdentity
 }
 
 /** Parses the share text of one game into [R]. */

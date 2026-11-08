@@ -1,31 +1,23 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
-
 /**
  * A Kinda Hard Golf result.
  *
- * A round is played to the end, so [success] is always null.
- *
+ * @property number The daily map's number. Null for a custom map.
  * @property strokes The total printed for the round.
  * @property holes The stroke count from each checkpoint and the tee, in the order listed. A
  *   skipped checkpoint is 0.
  * @property mapName The name of a custom map, printed in quotes. Null for a daily.
  */
 data class KindaHardGolfResult(
-    override val puzzleNumber: String?,
+    val number: Int?,
     val strokes: Int?,
     val holes: List<Int> = emptyList(),
     val infuriating: Boolean = false,
     val mapName: String? = null,
 ) : GameResult {
-    /** A custom map has no number, so it has no day. */
-    override val day: LocalDate?
-        get() = dayFromNumber(puzzleNumber, LAUNCH_DAY, firstNumber = 0)
+    override val puzzle: PuzzleIdentity get() = number?.let(PuzzleIdentity::DailyNumber) ?: PuzzleIdentity.NotDaily
 }
-
-/** The day of map #0. There is one map a day. */
-private val LAUNCH_DAY: LocalDate = LocalDate.of(2025, 4, 2)
 
 /**
  * Reads the Kinda Hard Golf share text.
@@ -59,7 +51,7 @@ object KindaHardGolfParser : ResultParser<KindaHardGolfResult> {
     override fun parse(text: String): KindaHardGolfResult? {
         val header = HEADER.find(text) ?: return null
         return KindaHardGolfResult(
-            puzzleNumber = header.groupValues[1].ifEmpty { null },
+            number = header.groupValues[1].toIntOrNull(),
             strokes =
                 STROKES
                     .find(text)

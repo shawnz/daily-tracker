@@ -27,7 +27,7 @@ class HuedParserTest {
     @Test
     fun `reads the number, the accuracy and the color`() {
         val result = HuedParser.parse(shared)!!
-        assertEquals("179", result.puzzleNumber)
+        assertEquals(179, result.number)
         assertEquals(100, result.accuracy)
         assertEquals("Avis", result.colorName)
     }
@@ -69,13 +69,8 @@ class HuedParserTest {
     // Puzzle 179 is dated 7 December 2025 in the game's puzzle list. It was served again on
     // 4 November 2026.
     @Test
-    fun `a puzzle number has no day`() {
-        assertNull(HuedParser.parse(shared)!!.day)
-    }
-
-    @Test
-    fun `a day has no win or loss`() {
-        assertNull(HuedParser.parse(shared)!!.success)
+    fun `a puzzle number doesn't determine the day`() {
+        assertEquals(PuzzleIdentity.UnidentifiedDaily, HuedParser.parse(shared)!!.puzzle)
     }
 
     @Test

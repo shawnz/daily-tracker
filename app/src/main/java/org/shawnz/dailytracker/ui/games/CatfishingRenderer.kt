@@ -40,13 +40,11 @@ object CatfishingRenderer : GameRenderer<CatfishingResult> {
             if (result.grid.isNotEmpty()) EmojiText(result.grid.joinToString("\n"))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(summaryText(result, LocalResources.current), style = MaterialTheme.typography.titleMedium)
-                result.puzzleNumber?.let {
-                    Text(
-                        "#$it",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    "#${result.number}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

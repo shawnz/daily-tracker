@@ -1,22 +1,23 @@
 package org.shawnz.dailytracker.parse
 
-import java.time.LocalDate
+import java.time.MonthDay
 
 /**
  * A Smush result.
  *
- * Smush puzzles have no number, so [puzzleNumber] is always null. Every chunk is worth some
- * points, so [success] is always null.
- *
  * @property badges The game's own words for what went well, in the order printed.
  * @property grid The rows of tiles, one string per row.
+ * @property monthDay The day the board was released. The text has no year.
  */
 data class SmushResult(
     val points: Int?,
     val badges: List<String> = emptyList(),
     val grid: List<String> = emptyList(),
-    override val day: LocalDate? = null,
+    val monthDay: MonthDay? = null,
 ) : GameResult {
+    override val puzzle: PuzzleIdentity
+        get() = monthDay?.let(PuzzleIdentity::MonthAndDay) ?: PuzzleIdentity.UnidentifiedDaily
+
     /**
      * A perfect game needs the pangram first, a clean plate and no hints, and its share text has
      * only the PERFECT badge in place of those three.
@@ -54,8 +55,8 @@ private val STREAK = Regex("""(\d+)-day streak""", RegexOption.IGNORE_CASE)
  *     🥞🥞🟨
  *
  * The date is the day the board was released, written in the browser's own language. It is
- * read in the form of any English locale, which is [MONTH_AND_DAY]. A date in another
- * language gives no day. The year comes from [monthAndDayValue].
+ * read in the form of any English locale, which is [MONTH_AND_DAY]. The day is unknown for a
+ * date in another language.
  *
  * A star marks the hub chunk and a pancake marks one that ran out of lives.
  */
@@ -70,13 +71,7 @@ object SmushParser : ResultParser<SmushResult> {
 
     override fun matches(text: String): Boolean = HEADER.containsMatchIn(text)
 
-    override fun parse(text: String): SmushResult? = parse(text, LocalDate.now())
-
-    /** Parses [text] as if read on [today]. */
-    fun parse(
-        text: String,
-        today: LocalDate,
-    ): SmushResult? {
+    override fun parse(text: String): SmushResult? {
         if (!HEADER.containsMatchIn(text)) return null
         val scoreLine = text.lineSequence().firstOrNull { POINTS.containsMatchIn(it) }
         return SmushResult(
@@ -99,12 +94,12 @@ object SmushParser : ResultParser<SmushResult> {
                     .map { it.trim() }
                     .filter { isGridRow(it, TILES) }
                     .toList(),
-            day =
+            monthDay =
                 DATE
                     .find(text)
                     ?.groupValues
                     ?.get(1)
-                    ?.let { monthAndDayValue(it, today) },
+                    ?.let(::monthAndDayValue),
         )
     }
 }

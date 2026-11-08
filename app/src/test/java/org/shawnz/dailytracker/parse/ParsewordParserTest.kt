@@ -68,7 +68,7 @@ class ParsewordParserTest {
     @Test
     fun `reads a perfect run with a secret found`() {
         val result = ParsewordParser.parse(perfect)!!
-        assertEquals("229", result.puzzleNumber)
+        assertEquals(229, result.number)
         assertEquals(41, result.seconds)
         assertTrue(result.perfect)
         assertEquals(0, result.assists)
@@ -76,13 +76,13 @@ class ParsewordParserTest {
         assertEquals(1, result.secretsFound)
         assertTrue(result.learnMode)
         assertTrue(result.underAMinute)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(PuzzleIdentity.DailyNumber(229), result.puzzle)
     }
 
     @Test
     fun `reads a played puzzle`() {
         val result = ParsewordParser.parse(played)!!
-        assertEquals("229", result.puzzleNumber)
+        assertEquals(229, result.number)
         assertEquals(99, result.seconds)
         assertEquals(0, result.assists)
         assertFalse(result.perfect)
@@ -91,27 +91,17 @@ class ParsewordParserTest {
         assertFalse(result.underAMinute)
     }
 
-    // Puzzle one was published on 2026-01-29.
     @Test
-    fun `a puzzle number is the day that puzzle was published`() {
-        assertEquals(LocalDate.of(2026, 9, 14), ParsewordParser.parse(played)!!.day)
-        assertEquals(
-            LocalDate.of(2026, 1, 29),
-            ParsewordParser.parse("Parseword #1\n💎 Perfect")!!.day,
-        )
-    }
-
-    @Test
-    fun `a puzzle outside the daily run has its id in quotes and has no day`() {
+    fun `a puzzle outside the daily run has its id in quotes and no number`() {
         val result = ParsewordParser.parse(eggHunt)!!
-        assertEquals("egg-hunt/jw-egg-hunt-1", result.puzzleNumber)
-        assertNull(result.day)
+        assertNull(result.number)
+        assertEquals(PuzzleIdentity.NotDaily, result.puzzle)
     }
 
     @Test
     fun `reads the puzzle number, the time and a perfect run`() {
         val result = ParsewordParser.parse(today)!!
-        assertEquals("240", result.puzzleNumber)
+        assertEquals(240, result.number)
         assertEquals(50, result.seconds)
         assertTrue(result.perfect)
         assertEquals(0, result.assists)
@@ -155,7 +145,6 @@ class ParsewordParserTest {
         assertEquals(1, result.assists)
         assertEquals(174, result.seconds)
         assertEquals(1, result.secretsFound)
-        assertEquals(LocalDate.of(2026, 4, 6), result.day)
         assertEquals(0, ParsewordParser.parse(olderNoHints)!!.assists)
     }
 

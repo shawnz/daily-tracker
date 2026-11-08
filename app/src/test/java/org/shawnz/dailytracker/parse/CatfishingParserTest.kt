@@ -19,7 +19,8 @@ class CatfishingParserTest {
     @Test
     fun `reads the number and the score`() {
         val result = CatfishingParser.parse(played)!!
-        assertEquals("813", result.puzzleNumber)
+        assertEquals(813, result.number)
+        assertEquals(PuzzleIdentity.DailyNumber(813), result.puzzle)
         assertEquals(1.0, result.score)
         assertEquals(10, result.total)
     }
@@ -29,11 +30,6 @@ class CatfishingParserTest {
         val result = CatfishingParser.parse(played)!!
         assertEquals(2, result.grid.size)
         assertEquals("🐈🐟🐟🐟🐟", result.grid.last())
-    }
-
-    @Test
-    fun `a day is scored rather than won or lost`() {
-        assertNull(CatfishingParser.parse(played)!!.success)
     }
 
     // A close guess is worth half a point.
@@ -64,7 +60,7 @@ class CatfishingParserTest {
             )
         for (name in links) {
             val result = CatfishingParser.parse("$name\n#813 - 1/10\n🐟🐟🐟🐟🐟\n🐈🐟🐟🐟🐟")!!
-            assertEquals("813", result.puzzleNumber)
+            assertEquals(813, result.number)
             assertEquals(1.0, result.score)
         }
     }
@@ -73,7 +69,7 @@ class CatfishingParserTest {
     @Test
     fun `reads the Markdown form`() {
         val result = CatfishingParser.parse("catfishing.net  \n813 - 1/10  \n🐟🐟🐟🐟🐟  \n🐈🐟🐟🐟🐟  \n")!!
-        assertEquals("813", result.puzzleNumber)
+        assertEquals(813, result.number)
         assertEquals(1.0, result.score)
         assertEquals(listOf("🐟🐟🐟🐟🐟", "🐈🐟🐟🐟🐟"), result.grid)
     }

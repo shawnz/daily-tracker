@@ -35,7 +35,8 @@ import java.time.LocalDate
  * @property selectedStatus The state of the puzzle for [selectedDay]. Null until the game loads.
  * @property playedDays Every puzzle day with an entry. Highlighted in the day picker.
  * @property entries All of this game's entries, for its aggregate figures.
- * @property possiblePuzzleDays Null until the game is loaded. The start is the day selected with
+ * @property possiblePuzzleDays The range of days the game's puzzle day can be. Null until the game
+ *   is loaded. The start is the day selected with
  *   the "Latest" button. The end is the last day that can be reached with the forward arrow or
  *   the day picker.
  */
@@ -51,6 +52,29 @@ data class DetailState(
     val currentDeviceDay: LocalDate? = null,
 ) {
     val isToday: Boolean get() = selectedDay != null && selectedDay == currentDeviceDay
+
+    /**
+     * The address the Play button opens, from [Game.playUrl]. Null when the selected puzzle can't
+     * be played, or until the game loads.
+     */
+    val playUrl: String?
+        get() {
+            val day = selectedDay ?: return null
+            val status = selectedStatus ?: return null
+            val possible = possiblePuzzleDays ?: return null
+            return game?.playUrl(day, status, possible)
+        }
+
+    /**
+     * The address the Open puzzle button opens: the page for the selected day's puzzle, when it is
+     * done. Null when the puzzle isn't done or the game has no such page.
+     */
+    val puzzleUrl: String?
+        get() {
+            val day = selectedDay ?: return null
+            if (selectedStatus !is PuzzleStatus.Done) return null
+            return game?.catalogGame?.dayUrl(day)
+        }
 
     val canGoForward: Boolean
         get() {

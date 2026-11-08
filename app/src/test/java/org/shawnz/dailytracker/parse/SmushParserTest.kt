@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
+import java.time.MonthDay
 
 class SmushParserTest {
     // Copied from a finished game.
@@ -73,13 +74,6 @@ class SmushParserTest {
             )!!
         assertEquals(emptyList<String>(), result.badges)
         assertEquals(120, result.points)
-    }
-
-    @Test
-    fun `there is no win or loss, and no puzzle number`() {
-        val result = SmushParser.parse(played)!!
-        assertNull(result.success)
-        assertNull(result.puzzleNumber)
     }
 
     @Test
@@ -206,58 +200,53 @@ class SmushParserTest {
         assertEquals(95, result.points)
         assertEquals(listOf("★ pangram"), result.badges)
         assertEquals(3, result.grid.size)
-        assertNull(result.day)
+        assertEquals(PuzzleIdentity.UnidentifiedDaily, result.puzzle)
     }
 
     @Test
-    fun `the day is the header's date in the year it was read`() {
-        val result = SmushParser.parse(played, today = LocalDate.of(2026, 9, 14))!!
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+    fun `the header has the board's month and day`() {
+        assertEquals(PuzzleIdentity.MonthAndDay(MonthDay.of(9, 14)), SmushParser.parse(played)!!.puzzle)
     }
 
     @Test
-    fun `an earlier board is filed on its own day`() {
-        val result = SmushParser.parse(played, today = LocalDate.of(2026, 10, 12))!!
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+    fun `an earlier board is on its own day`() {
+        val puzzle = SmushParser.parse(played)!!.puzzle
+        assertEquals(LocalDate.of(2026, 9, 14), puzzle.resolveDay(numbering = null, latest = LocalDate.of(2026, 10, 12)))
     }
 
     // The header as `shareText` writes it for a board released on 31 December 2026.
     @Test
-    fun `a date later in the year than today is in the year before`() {
-        val text = played.replace("Sep 14", "Dec 31")
-        val result = SmushParser.parse(text, today = LocalDate.of(2027, 1, 2))!!
-        assertEquals(LocalDate.of(2026, 12, 31), result.day)
+    fun `a board from late in the year before is in that year`() {
+        val puzzle = SmushParser.parse(played.replace("Sep 14", "Dec 31"))!!.puzzle
+        assertEquals(LocalDate.of(2026, 12, 31), puzzle.resolveDay(numbering = null, latest = LocalDate.of(2027, 1, 2)))
     }
 
     // The headers as `shareText` writes them in an Emirati, a British and a South African
     // browser. The last is for the board released on 4 September.
     @Test
     fun `a date in another English locale's form is read`() {
-        val today = LocalDate.of(2026, 9, 14)
         for (date in listOf("14 Sep", "14 Sept")) {
-            val result = SmushParser.parse(played.replace("Sep 14", date), today)!!
-            assertEquals(LocalDate.of(2026, 9, 14), result.day, date)
+            val result = SmushParser.parse(played.replace("Sep 14", date))!!
+            assertEquals(MonthDay.of(9, 14), result.monthDay, date)
         }
-        val padded = SmushParser.parse(played.replace("Sep 14", "04 Sept"), today)!!
-        assertEquals(LocalDate.of(2026, 9, 4), padded.day)
+        val padded = SmushParser.parse(played.replace("Sep 14", "04 Sept"))!!
+        assertEquals(MonthDay.of(9, 4), padded.monthDay)
     }
 
     // The header as `shareText` writes it in an Australian browser for the board released on
     // 4 July.
     @Test
     fun `a month written in four letters is read`() {
-        val text = played.replace("Sep 14", "4 July")
-        val result = SmushParser.parse(text, today = LocalDate.of(2026, 9, 14))!!
-        assertEquals(LocalDate.of(2026, 7, 4), result.day)
+        val result = SmushParser.parse(played.replace("Sep 14", "4 July"))!!
+        assertEquals(MonthDay.of(7, 4), result.monthDay)
     }
 
     // The headers as `shareText` writes them in a French, a German and a Japanese browser.
     @Test
-    fun `a date in another language gives no day`() {
+    fun `a date in another language has no day`() {
         for (date in listOf("14 sept.", "14. Sept.", "9月14日")) {
-            val text = played.replace("Sep 14", date)
-            val result = SmushParser.parse(text, today = LocalDate.of(2026, 9, 14))!!
-            assertNull(result.day, date)
+            val result = SmushParser.parse(played.replace("Sep 14", date))!!
+            assertEquals(PuzzleIdentity.UnidentifiedDaily, result.puzzle, date)
             assertEquals(298, result.points, date)
         }
     }

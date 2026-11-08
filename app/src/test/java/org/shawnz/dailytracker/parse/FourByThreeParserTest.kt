@@ -25,7 +25,7 @@ class FourByThreeParserTest {
         val result = FourByThreeParser.parse(solved)!!
         assertEquals(156, result.points)
         assertEquals(0, result.mistakes)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
         assertTrue(result.success)
     }
 
@@ -156,7 +156,7 @@ class FourByThreeParserTest {
         assertTrue(result.ruleBreaker)
         assertEquals(-100, result.points)
         assertTrue(result.success)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
     }
 
     // The hub word went last every guess, which is what the ending is for.
@@ -215,7 +215,7 @@ class FourByThreeParserTest {
     fun `an archive board is read with its address after the link`() {
         val result = FourByThreeParser.parse(archive)!!
         assertEquals(155, result.points)
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
         assertEquals(4, result.grid.size)
     }
 
@@ -226,7 +226,7 @@ class FourByThreeParserTest {
                 "14 September 2026\n156 points • No mistakes\n" +
                     "🌟🟦🟦\n🌟🟨🟨\n🌟🟩🟩\n🌟🟪🟪\nhttps://4x3.fun",
             )!!
-        assertEquals(LocalDate.of(2026, 9, 14), result.day)
+        assertEquals(LocalDate.of(2026, 9, 14), result.date)
     }
 
     @Test
@@ -236,7 +236,7 @@ class FourByThreeParserTest {
                 "14 septembre 2026\n156 points • No mistakes\n" +
                     "🌟🟦🟦\n🌟🟨🟨\n🌟🟩🟩\n🌟🟪🟪\nhttps://4x3.fun",
             )!!
-        assertNull(result.day)
+        assertEquals(PuzzleIdentity.UnidentifiedDaily, result.puzzle)
         assertEquals(156, result.points)
     }
 

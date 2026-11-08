@@ -204,4 +204,45 @@ class GameTest {
             raddle.statusOn(october17, entries, at("2026-10-17T21:00")),
         )
     }
+
+    private val unplayed = PuzzleStatus.Unplayed(nextRollover = null)
+    private val missed = PuzzleStatus.Missed(currentPuzzleUnplayed = false)
+    private val fourByThree = testGame(source = CatalogGame.FOUR_BY_THREE)
+
+    @Test
+    fun `an unplayed puzzle on a day that is the only possible puzzle day is played from the game's page`() {
+        assertEquals(fourByThree.url, fourByThree.playUrl(today, unplayed, today..today))
+    }
+
+    @Test
+    fun `an unplayed puzzle on one of two possible puzzle days is played from its own page`() {
+        assertEquals("https://raddle.quest/2026/09/07/", raddle.playUrl(today, unplayed, today..tomorrow))
+    }
+
+    @Test
+    fun `an unplayed puzzle of a game with no page for each puzzle is played from the game's page`() {
+        assertEquals(custom.url, custom.playUrl(today, unplayed, today..tomorrow))
+    }
+
+    @Test
+    fun `a missed puzzle is played from its own page`() {
+        assertEquals(
+            "https://www.hankgreen.com/fourbythree/#d=2026-09-06",
+            fourByThree.playUrl(today.minusDays(1), missed, today..today),
+        )
+    }
+
+    @Test
+    fun `a missed puzzle of a game with no page for each puzzle can't be played`() {
+        assertNull(custom.playUrl(today.minusDays(1), missed, today..today))
+    }
+
+    @Test
+    fun `a done or unreleased puzzle can't be played`() {
+        val done = PuzzleStatus.Done(EntryEntity(gameId = fourByThree.id, puzzleDay = today))
+        val unreleased = PuzzleStatus.Unreleased(nextRollover = null, currentPuzzleUnplayed = false)
+
+        assertNull(fourByThree.playUrl(today, done, today..today))
+        assertNull(fourByThree.playUrl(tomorrow, unreleased, today..today))
+    }
 }
