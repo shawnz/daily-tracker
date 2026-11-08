@@ -64,8 +64,8 @@
     <string name="detail_streak">Day streak</string>
     <string name="detail_completion" tools:ignore="PluralsCandidate">Last %1$d days</string>
     <string name="detail_plays">Plays</string>
-    <string name="detail_reminders_on">Included in reminders</string>
-    <string name="detail_reminders_off">Muted in reminders</string>
+    <string name="detail_reminders_mute">Mute reminders</string>
+    <string name="detail_reminders_unmute">Unmute reminders</string>
     <string name="detail_archive">Archive</string>
     <string name="detail_delete_action">Delete game…</string>
     <string name="detail_delete">Delete game and history</string>

@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +61,7 @@ import org.shawnz.dailytracker.data.GameProgress
 import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.ui.DayPickerDialog
 import org.shawnz.dailytracker.ui.PageMargin
+import org.shawnz.dailytracker.ui.TooltipIconButton
 import org.shawnz.dailytracker.ui.dayLabel
 import org.shawnz.dailytracker.ui.games.EntryAggregate
 import org.shawnz.dailytracker.ui.games.EntryDetail
@@ -132,22 +134,28 @@ internal fun GameDetailScreen(
                 },
                 actions = {
                     if (game != null) {
-                        IconButton(onClick = { CustomTabLauncher.launch(context, game.url, toolbarColor) }) {
-                            Icon(
-                                painterResource(R.drawable.ic_open_in_new),
-                                stringResource(R.string.detail_open_site),
-                            )
-                        }
-                        IconButton(onClick = { viewModel.setReminders(!game.remindersEnabled) }) {
-                            ReminderIcon(enabled = game.remindersEnabled)
-                        }
+                        TooltipIconButton(
+                            icon = R.drawable.ic_open_in_new,
+                            description = stringResource(R.string.detail_open_site),
+                            onClick = { CustomTabLauncher.launch(context, game.url, toolbarColor) },
+                            position = TooltipAnchorPosition.Below,
+                        )
+                        TooltipIconButton(
+                            icon = if (game.remindersEnabled) R.drawable.ic_notifications else R.drawable.ic_notifications_off,
+                            description =
+                                stringResource(
+                                    if (game.remindersEnabled) R.string.detail_reminders_mute else R.string.detail_reminders_unmute,
+                                ),
+                            onClick = { viewModel.setReminders(!game.remindersEnabled) },
+                            position = TooltipAnchorPosition.Below,
+                        )
                         Box {
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_more_vert),
-                                    stringResource(R.string.action_more),
-                                )
-                            }
+                            TooltipIconButton(
+                                icon = R.drawable.ic_more_vert,
+                                description = stringResource(R.string.action_more),
+                                onClick = { menuOpen = true },
+                                position = TooltipAnchorPosition.Below,
+                            )
                             DropdownMenu(
                                 expanded = menuOpen,
                                 onDismissRequest = { menuOpen = false },
@@ -574,21 +582,4 @@ private fun DayStepper(
             )
         }
     }
-}
-
-/** Shows whether reminders are enabled for this game. */
-@Composable
-private fun ReminderIcon(
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Icon(
-        painterResource(
-            if (enabled) R.drawable.ic_notifications else R.drawable.ic_notifications_off,
-        ),
-        stringResource(
-            if (enabled) R.string.detail_reminders_on else R.string.detail_reminders_off,
-        ),
-        modifier = modifier,
-    )
 }

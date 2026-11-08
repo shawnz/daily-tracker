@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,6 +68,7 @@ import org.shawnz.dailytracker.browser.CustomTabLauncher
 import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.ui.DayPickerDialog
 import org.shawnz.dailytracker.ui.PageMargin
+import org.shawnz.dailytracker.ui.TooltipIconButton
 import org.shawnz.dailytracker.ui.dayLabel
 import org.shawnz.dailytracker.ui.games.EntrySummary
 import org.shawnz.dailytracker.ui.shareText
@@ -143,36 +145,33 @@ internal fun TodayScreen(
                     }
                 },
                 actions = {
-                    IconButton(
+                    TooltipIconButton(
+                        icon = R.drawable.ic_share,
+                        description = stringResource(R.string.action_share),
                         onClick = {
-                            val state = today ?: return@IconButton
+                            val state = today ?: return@TooltipIconButton
                             shareText(
                                 context,
                                 todayShareText(state.rows, state.day, resources),
                             )
                         },
                         enabled = today != null && today.doneCount > 0,
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.ic_share),
-                            stringResource(R.string.action_share),
-                        )
-                    }
-                    IconButton(onClick = onStats, enabled = !today?.rows.isNullOrEmpty()) {
-                        Icon(
-                            painterResource(R.drawable.ic_leaderboard),
-                            stringResource(R.string.action_stats),
-                        )
-                    }
-                    IconButton(
+                        position = TooltipAnchorPosition.Below,
+                    )
+                    TooltipIconButton(
+                        icon = R.drawable.ic_leaderboard,
+                        description = stringResource(R.string.action_stats),
+                        onClick = onStats,
+                        enabled = !today?.rows.isNullOrEmpty(),
+                        position = TooltipAnchorPosition.Below,
+                    )
+                    TooltipIconButton(
+                        icon = R.drawable.ic_settings,
+                        description = stringResource(R.string.action_settings),
                         onClick = onSettings,
                         modifier = Modifier.padding(end = TopBarInset),
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.ic_settings),
-                            stringResource(R.string.action_settings),
-                        )
-                    }
+                        position = TooltipAnchorPosition.Below,
+                    )
                 },
             )
         },
