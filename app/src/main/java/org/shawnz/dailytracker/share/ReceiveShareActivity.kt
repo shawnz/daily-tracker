@@ -1,7 +1,6 @@
 package org.shawnz.dailytracker.share
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -93,12 +92,15 @@ class ReceiveShareActivity : ComponentActivity() {
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
-    /** Vibrates twice, on API 29 and up, to draw attention to a warning toast. */
+    /**
+     * Vibrates to draw attention to a warning toast, with the timings of AOSP's
+     * `config_notificationFallbackVibePattern`, which is played for a notification without its
+     * own vibration when the phone is in vibrate mode. The timings are off and on durations in
+     * milliseconds, starting with the delay, and -1 plays them once.
+     */
     private fun buzz() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            getSystemService(Vibrator::class.java)
-                ?.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK))
-        }
+        getSystemService(Vibrator::class.java)
+            ?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 100, 150, 100), -1))
     }
 }
 
