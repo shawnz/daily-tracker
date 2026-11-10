@@ -253,6 +253,44 @@ class DefaultRepositoryTest {
     }
 
     @Test
+    fun `a deleted entry is restored as it was`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val game = repo.activeGames().single()
+            repo.record(game, solvedInFour, puzzleDay)
+            val before = repo.entryFor(game, puzzleDay)!!
+            repo.deleteEntry(before)
+
+            repo.restoreEntry(before)
+
+            assertEquals(listOf(before), repo.observeEntries(game.id).first())
+        }
+    }
+
+    // One entry per game per day.
+    @Test
+    fun `a restored entry replaces the entry saved on the same day since`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val game = repo.activeGames().single()
+            db.entryDao().insert(
+                EntryEntity(
+                    gameId = game.id,
+                    puzzleDay = puzzleDay,
+                    completedAt = Instant.EPOCH,
+                    rawShareText = solvedInFour,
+                ),
+            )
+            val before = repo.entryFor(game, puzzleDay)!!
+            repo.record(game, solvedInThree, puzzleDay)
+
+            repo.restoreEntry(before)
+
+            assertEquals(listOf(before), repo.observeEntries(game.id).first())
+        }
+    }
+
+    @Test
     fun `deleting a game takes its entries with it`() {
         runBlocking {
             repo.addFromCatalog(CatalogGame.WORDLE)

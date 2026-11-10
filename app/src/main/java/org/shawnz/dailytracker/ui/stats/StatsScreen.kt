@@ -3,7 +3,6 @@ package org.shawnz.dailytracker.ui.stats
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -29,7 +28,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.ui.PageMargin
-import org.shawnz.dailytracker.ui.games.GameModule
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,52 +112,16 @@ internal fun StatsScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(stat.game.title, style = MaterialTheme.typography.titleMedium)
-                        StatLine(
-                            stringResource(R.string.stats_completion),
-                            "${(stat.completion * 100).toInt()}%",
-                        )
-                        StatLine(
-                            stringResource(R.string.stats_recorded),
-                            pluralStringResource(
-                                R.plurals.stats_plays,
-                                stat.plays,
-                                stat.plays,
-                            ),
-                        )
-                        StatLine(
-                            stringResource(R.string.stats_streak),
-                            pluralStringResource(
-                                R.plurals.stats_days,
-                                stat.streak,
-                                stat.streak,
-                            ),
-                        )
-                        GameModule.forGame(stat.game)?.Aggregate(
+                        GameStatLines(
+                            game = stat.game,
+                            completion = stat.completion,
+                            plays = stat.plays,
+                            streak = stat.streak,
                             entries = stat.entries,
-                            modifier = Modifier.padding(top = 2.dp),
                         )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StatLine(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }

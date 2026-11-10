@@ -83,6 +83,18 @@ data class DetailState(
         }
 }
 
+/**
+ * A write in which a saved entry or its text was lost.
+ *
+ * @property previous The entry as it was before the write.
+ * @property deleted Whether the whole entry was deleted. Otherwise only the text was replaced or
+ *   removed.
+ */
+data class UndoableChange(
+    val previous: EntryEntity,
+    val deleted: Boolean,
+)
+
 @HiltViewModel(assistedFactory = GameDetailViewModel.Factory::class)
 class GameDetailViewModel
     @AssistedInject
@@ -144,22 +156,50 @@ class GameDetailViewModel
             chosenDay.value = day.plusDays(days)
         }
 
-        /** Saves the selected day. Blank text records a play with no result. */
+        private val _undoable = MutableStateFlow<UndoableChange?>(null)
+
+        /** The last [UndoableChange], until it is undone or dismissed. */
+        val undoable: StateFlow<UndoableChange?> = _undoable.asStateFlow()
+
+        /**
+         * Saves [text] as the result for the selected day. With blank text, a play is recorded
+         * with no result. Replacing or removing saved text sets [undoable].
+         */
         fun record(text: String?) =
             viewModelScope.launch {
                 val game = repo.getGame(gameId) ?: return@launch
                 val day = state.value.selectedDay ?: return@launch
                 // A puzzle that isn't released yet can't have a result.
                 if (state.value.selectedStatus is PuzzleStatus.Unreleased) return@launch
-                repo.record(game, text?.takeIf { it.isNotBlank() }, day)
+                val saved = text?.takeIf { it.isNotBlank() }
+                val previous = repo.entryFor(game, day)
+                repo.record(game, saved, day)
+                if (previous?.rawShareText != null && !previous.hasText(saved)) {
+                    _undoable.value = UndoableChange(previous, deleted = false)
+                }
             }
 
-        fun clearSelected() =
+        /** Deletes the selected day's entry and sets [undoable]. */
+        fun deleteSelected() =
             viewModelScope.launch {
                 val game = repo.getGame(gameId) ?: return@launch
                 val day = state.value.selectedDay ?: return@launch
-                repo.entryFor(game, day)?.let { repo.deleteEntry(it) }
+                val previous = repo.entryFor(game, day) ?: return@launch
+                repo.deleteEntry(previous)
+                _undoable.value = UndoableChange(previous, deleted = true)
             }
+
+        /** Writes back the entry from before [change], if [change] is still [undoable]. */
+        fun undo(change: UndoableChange) =
+            viewModelScope.launch {
+                if (!_undoable.compareAndSet(change, null)) return@launch
+                repo.restoreEntry(change.previous)
+            }
+
+        /** Clears [undoable], if it is still [change]. */
+        fun dismissUndo(change: UndoableChange) {
+            _undoable.compareAndSet(change, null)
+        }
 
         fun setReminders(enabled: Boolean) =
             viewModelScope.launch {

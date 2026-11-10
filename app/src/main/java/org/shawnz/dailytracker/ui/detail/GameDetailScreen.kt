@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
@@ -23,13 +24,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
@@ -54,23 +56,19 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.browser.CustomTabLauncher
-import org.shawnz.dailytracker.data.COMPLETION_WINDOW_DAYS
-import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
-import org.shawnz.dailytracker.data.GameProgress
 import org.shawnz.dailytracker.data.PuzzleStatus
 import org.shawnz.dailytracker.ui.DayPickerDialog
 import org.shawnz.dailytracker.ui.PageMargin
 import org.shawnz.dailytracker.ui.TooltipIconButton
 import org.shawnz.dailytracker.ui.dayLabel
-import org.shawnz.dailytracker.ui.games.EntryAggregate
 import org.shawnz.dailytracker.ui.games.EntryDetail
 import org.shawnz.dailytracker.ui.hostLabel
 import org.shawnz.dailytracker.ui.shareText
+import org.shawnz.dailytracker.ui.stats.GameStatLines
 import org.shawnz.dailytracker.ui.timeText
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlin.math.roundToInt
 
 /** The details of one game, a button to play it, and its result for a selected day. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,8 +105,24 @@ internal fun GameDetailScreen(
         derivedStateOf { listState.firstVisibleItemIndex > 0 }
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val undoable by viewModel.undoable.collectAsStateWithLifecycle()
+    val deletedMessage = stringResource(R.string.detail_result_deleted)
+    val changedMessage = stringResource(R.string.detail_result_changed)
+    val undoLabel = stringResource(R.string.action_undo)
+    LaunchedEffect(undoable) {
+        val change = undoable ?: return@LaunchedEffect
+        val result =
+            snackbarHostState.showSnackbar(
+                message = if (change.deleted) deletedMessage else changedMessage,
+                actionLabel = undoLabel,
+            )
+        if (result == SnackbarResult.ActionPerformed) viewModel.undo(change) else viewModel.dismissUndo(change)
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -210,6 +224,10 @@ internal fun GameDetailScreen(
                     onStep = { viewModel.stepDay(it) },
                     onPickDay = { pickingDay = true },
                     onOpen = { CustomTabLauncher.launch(context, it, toolbarColor) },
+                    onAdd = {
+                        draft = ""
+                        editing = true
+                    },
                     onEdit = {
                         draft = state.selectedEntry?.rawShareText.orEmpty()
                         editing = true
@@ -222,26 +240,34 @@ internal fun GameDetailScreen(
                     onShare = {
                         state.selectedEntry?.rawShareText?.let { shareText(context, it) }
                     },
-                    onClear = {
-                        viewModel.clearSelected()
-                        // The card is about to show the empty state for this day, so the
-                        // field must not still contain the text that was just deleted.
-                        draft = ""
+                    onDelete = {
+                        viewModel.deleteSelected()
+                        editing = false
                     },
                 )
             }
 
+            // The stats don't depend on the selected day, so they are outside the day card.
             val progress = state.progress
             if (progress != null && progress.plays > 0) {
-                item(key = "progress") {
-                    // Aligned to the page margin, like the header, so these figures start to
-                    // the left of the grid inside the card above.
-                    Progress(
-                        progress = progress,
-                        game = game,
-                        entries = state.entries,
+                item(key = "stats-header") {
+                    Text(
+                        stringResource(R.string.stats_title),
+                        style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(top = 16.dp),
                     )
+                }
+                item(key = "stats") {
+                    Card {
+                        GameStatLines(
+                            game = game,
+                            completion = progress.completion,
+                            plays = progress.plays,
+                            streak = progress.streak,
+                            entries = state.entries,
+                            modifier = Modifier.padding(16.dp + ButtonOverhang),
+                        )
+                    }
                 }
             }
         }
@@ -340,11 +366,12 @@ private fun DayCard(
     onStep: (Long) -> Unit,
     onPickDay: () -> Unit,
     onOpen: (url: String) -> Unit,
+    onAdd: () -> Unit,
     onEdit: () -> Unit,
     onCancelEdit: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
-    onClear: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val entry = state.selectedEntry
@@ -364,178 +391,221 @@ private fun DayCard(
                 onPickDay = onPickDay,
             )
 
-            HorizontalDivider()
-
-            val unreleased = state.selectedStatus as? PuzzleStatus.Unreleased
-            if (unreleased != null) {
-                Text(
-                    unreleased.nextRollover?.let {
-                        val time = it.atZone(ZoneId.systemDefault()).toLocalTime()
-                        stringResource(R.string.today_next_puzzle_at, timeText(time))
-                    } ?: stringResource(R.string.today_not_out),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else if (entry != null && !editing) {
-                EntryDetail(game, entry)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = onEdit) {
-                        Text(stringResource(R.string.action_edit))
-                    }
-                    TextButton(
-                        onClick = onShare,
-                        enabled = !entry.rawShareText.isNullOrBlank(),
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.ic_share),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            stringResource(R.string.action_share),
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
-                    }
-                    state.puzzleUrl?.let { url ->
-                        TextButton(onClick = { onOpen(url) }) {
-                            Icon(
-                                painterResource(R.drawable.ic_open_in_new),
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                stringResource(R.string.detail_open_puzzle),
-                                modifier = Modifier.padding(start = 6.dp),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    TextButton(
-                        onClick = onClear,
-                        colors =
-                            ButtonDefaults.textButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error,
-                            ),
-                    ) { Text(stringResource(R.string.detail_clear)) }
-                }
-            } else {
-                if (entry == null) {
-                    val playUrl = state.playUrl
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            stringResource(
-                                if (playUrl != null) R.string.today_not_played else R.string.detail_nothing_recorded,
-                            ),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        if (playUrl != null) {
-                            OutlinedButton(onClick = { onOpen(playUrl) }) {
-                                Icon(
-                                    painterResource(R.drawable.ic_play_arrow),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text(
-                                    stringResource(R.string.detail_play),
-                                    modifier = Modifier.padding(start = 6.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (game.parser == null) {
+            val status = state.selectedStatus
+            when {
+                status is PuzzleStatus.Unreleased -> {
                     Text(
-                        stringResource(R.string.detail_no_parser),
-                        style = MaterialTheme.typography.bodySmall,
+                        status.nextRollover?.let {
+                            val time = it.atZone(ZoneId.systemDefault()).toLocalTime()
+                            stringResource(R.string.today_next_puzzle_at, timeText(time))
+                        } ?: stringResource(R.string.today_not_out),
+                        modifier = Modifier.padding(horizontal = ButtonOverhang),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
-                OutlinedTextField(
-                    value = draft,
-                    onValueChange = onDraftChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(R.string.detail_record_hint)) },
-                    minLines = 3,
-                    maxLines = 8,
-                )
+                editing -> {
+                    EntryEditor(
+                        game = game,
+                        draft = draft,
+                        hasEntry = entry != null,
+                        onDraftChange = onDraftChange,
+                        onCancel = onCancelEdit,
+                        onSave = onSave,
+                        onDelete = onDelete,
+                    )
+                }
 
-                if (editing) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        TextButton(onClick = onCancelEdit) {
-                            Text(stringResource(R.string.action_cancel))
-                        }
-                        Button(
-                            onClick = onSave,
-                            modifier = Modifier.padding(start = 8.dp),
-                        ) { Text(stringResource(R.string.detail_save)) }
-                    }
-                } else {
-                    Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.detail_mark_done))
-                    }
+                entry != null -> {
+                    EntryDetail(game, entry, Modifier.padding(horizontal = ButtonOverhang))
+                    EntryActions(
+                        puzzleUrl = state.puzzleUrl,
+                        canShare = !entry.rawShareText.isNullOrBlank(),
+                        onOpen = onOpen,
+                        onShare = onShare,
+                        onEdit = onEdit,
+                    )
+                }
+
+                else -> {
+                    NoEntry(
+                        playUrl = state.playUrl,
+                        onOpen = onOpen,
+                        onAdd = onAdd,
+                    )
                 }
             }
         }
     }
 }
 
-/** The game's streak, completion and plays, followed by its [EntryAggregate]. */
+/**
+ * How far the touch target of a text button or icon button extends past its label or icon. Other
+ * content in the cards is indented by this much, so that it lines up with the labels and icons.
+ */
+private val ButtonOverhang = 12.dp
+
+/**
+ * The actions for a recorded day. They are on a row of their own under the result, because a
+ * result can be as wide as the card.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Progress(
-    progress: GameProgress,
-    game: Game,
-    entries: List<EntryEntity>,
+private fun EntryActions(
+    puzzleUrl: String?,
+    canShare: Boolean,
+    onOpen: (url: String) -> Unit,
+    onShare: () -> Unit,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Figure(
-                value = progress.streak.toString(),
-                label = stringResource(R.string.detail_streak),
-                modifier = Modifier.weight(1f),
-            )
-            Figure(
-                value = "${(progress.completion * 100).roundToInt()}%",
-                label = stringResource(R.string.detail_completion, COMPLETION_WINDOW_DAYS),
-                modifier = Modifier.weight(1f),
-            )
-            Figure(
-                value = progress.plays.toString(),
-                label = stringResource(R.string.detail_plays),
-                modifier = Modifier.weight(1f),
-            )
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // A text button, because the top bar's button for the game's site has the same icon.
+        if (puzzleUrl != null) {
+            TextButton(onClick = { onOpen(puzzleUrl) }) {
+                Icon(
+                    painterResource(R.drawable.ic_open_in_new),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    stringResource(R.string.detail_open_puzzle),
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
         }
-        EntryAggregate(game, entries)
+        Spacer(Modifier.weight(1f))
+        TooltipIconButton(
+            icon = R.drawable.ic_share,
+            description = stringResource(R.string.action_share),
+            onClick = onShare,
+            enabled = canShare,
+        )
+        TooltipIconButton(
+            icon = R.drawable.ic_edit,
+            description = stringResource(R.string.action_edit),
+            onClick = onEdit,
+        )
     }
 }
 
+/**
+ * A day with no result. Play is shown when that day's puzzle can be played.
+ *
+ * The text is the same on every such day. Play shows whether the puzzle can still be played, and
+ * when the rollover time is unknown, the current puzzle can be on either of two days.
+ */
 @Composable
-private fun Figure(
-    value: String,
-    label: String,
+private fun NoEntry(
+    playUrl: String?,
+    onOpen: (url: String) -> Unit,
+    onAdd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
-        Text(value, style = MaterialTheme.typography.headlineSmall)
+    // The day stepper above has about 12dp of touch target under its arrows and date, and the
+    // buttons have 4dp. The padding above is 8dp less, so the visible space is the same.
+    Column(
+        modifier = modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
+            stringResource(R.string.today_not_played),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (playUrl != null) {
+                Button(onClick = { onOpen(playUrl) }) {
+                    Icon(
+                        painterResource(R.drawable.ic_play_arrow),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Text(
+                        stringResource(R.string.detail_play),
+                        modifier = Modifier.padding(start = 6.dp),
+                    )
+                }
+            }
+            TextButton(onClick = onAdd) {
+                Icon(
+                    painterResource(R.drawable.ic_add),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    stringResource(R.string.detail_add_result),
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+/** The field for a day's share text. Saving with the field empty records a play with no result. */
+@Composable
+private fun EntryEditor(
+    game: Game,
+    draft: String,
+    hasEntry: Boolean,
+    onDraftChange: (String) -> Unit,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (game.parser == null) {
+            Text(
+                stringResource(R.string.detail_no_parser),
+                modifier = Modifier.padding(horizontal = ButtonOverhang),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        OutlinedTextField(
+            value = draft,
+            onValueChange = onDraftChange,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = ButtonOverhang),
+            label = { Text(stringResource(R.string.detail_record_hint)) },
+            minLines = 3,
+            maxLines = 8,
+        )
+
+        // Save is drawn to its left and right edges, so the end of the row is inset to line it up.
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(end = ButtonOverhang),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (hasEntry) {
+                TextButton(
+                    onClick = onDelete,
+                    colors =
+                        ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                ) { Text(stringResource(R.string.detail_delete_result)) }
+            }
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.action_cancel))
+            }
+            Button(
+                onClick = onSave,
+                modifier = Modifier.padding(start = 8.dp),
+            ) {
+                Text(stringResource(if (hasEntry) R.string.detail_save else R.string.detail_mark_done))
+            }
+        }
     }
 }
 
@@ -563,6 +633,9 @@ private fun DayStepper(
                     contentColor = MaterialTheme.colorScheme.onSurface,
                 ),
         ) {
+            // As wide as the icon and its padding after the date, so that the date alone is
+            // centered.
+            Spacer(Modifier.width(4.dp + 24.dp))
             Text(
                 label,
                 style = MaterialTheme.typography.titleMedium,
@@ -572,7 +645,7 @@ private fun DayStepper(
             Icon(
                 painterResource(R.drawable.ic_expand_more),
                 stringResource(R.string.detail_pick_day),
-                modifier = Modifier.padding(start = 4.dp),
+                modifier = Modifier.padding(start = 4.dp).size(24.dp),
             )
         }
         IconButton(onClick = { onStep(1) }, enabled = canGoForward) {

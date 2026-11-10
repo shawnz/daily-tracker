@@ -25,7 +25,8 @@ sealed interface PuzzleStatus {
     ) : PuzzleStatus
 
     /**
-     * The puzzle can be played now and has no result.
+     * The puzzle has no result, and its day is one of the game's possible puzzle days. When the
+     * rollover time is unknown, there are two possible days, and only one of them is current.
      *
      * @property nextRollover The game's next rollover, or null when its rollover time is unknown.
      */

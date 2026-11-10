@@ -165,6 +165,11 @@ class FakeRepository(
         entries.value = entries.value.filterNot { it.id == entry.id }
     }
 
+    override suspend fun restoreEntry(entry: EntryEntity) {
+        entries.value =
+            entries.value.filterNot { it.gameId == entry.gameId && it.puzzleDay == entry.puzzleDay } + entry
+    }
+
     // Does nothing here. The migration is tested against the database in DefaultRepositoryTest.
     override suspend fun migrateCustomGames() = Unit
 }

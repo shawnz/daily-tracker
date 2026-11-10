@@ -107,7 +107,7 @@ class GameDetailViewModelTest {
             assertEquals(wordleText(day), saved.rawShareText)
         }
 
-    // The day stays played, because only Clear removes the entry.
+    // The day stays played, because only deleteSelected removes the entry.
     @Test
     fun `recording blank text over a saved result removes the text`() =
         runTest(dispatcher) {
@@ -124,15 +124,113 @@ class GameDetailViewModelTest {
         }
 
     @Test
-    fun `clearing removes the entry for that day`() =
+    fun `deleting the result removes the entry for that day`() =
         runTest(dispatcher) {
             val repo = FakeRepository(games = listOf(game))
             val vm = viewModel(repo)
             val day = vm.state.first { it.selectedDay != null }.selectedDay!!
             vm.record(wordleText(day)).join()
 
-            vm.clearSelected().join()
+            vm.deleteSelected().join()
 
+            assertTrue(repo.entries.value.isEmpty())
+        }
+
+    @Test
+    fun `a deleted result can be undone`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo)
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+            vm.record(wordleText(day)).join()
+            val before = repo.entries.value.single()
+            vm.deleteSelected().join()
+
+            val change = vm.undoable.value!!
+            assertTrue(change.deleted)
+            vm.undo(change).join()
+
+            assertEquals(listOf(before), repo.entries.value)
+            assertNull(vm.undoable.value)
+        }
+
+    // The replacement is the previous day's result, pasted on the wrong day.
+    @Test
+    fun `replaced text can be undone`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo)
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+            vm.record(wordleText(day)).join()
+            val before = repo.entries.value.single()
+            vm.record(wordleText(day.minusDays(1))).join()
+
+            val change = vm.undoable.value!!
+            assertFalse(change.deleted)
+            vm.undo(change).join()
+
+            assertEquals(listOf(before), repo.entries.value)
+        }
+
+    @Test
+    fun `removed text can be undone`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo)
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+            vm.record(wordleText(day)).join()
+
+            vm.record("").join()
+
+            assertFalse(vm.undoable.value!!.deleted)
+        }
+
+    // Nothing saved is lost, so there is nothing to undo.
+    @Test
+    fun `no undo is offered for a first result or for the same text again`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo)
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+
+            vm.record(wordleText(day)).join()
+            assertNull(vm.undoable.value)
+
+            vm.record(" ${wordleText(day)}\n").join()
+            assertNull(vm.undoable.value)
+        }
+
+    @Test
+    fun `an earlier change can't be undone once a later one replaces it`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo)
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+            vm.record(wordleText(day)).join()
+            vm.record("").join()
+            val earlier = vm.undoable.value!!
+            vm.deleteSelected().join()
+            val later = vm.undoable.value!!
+
+            vm.undo(earlier).join()
+            vm.dismissUndo(earlier)
+
+            assertTrue(repo.entries.value.isEmpty())
+            assertEquals(later, vm.undoable.value)
+        }
+
+    @Test
+    fun `dismissing ends the offer to undo`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(game))
+            val vm = viewModel(repo)
+            val day = vm.state.first { it.selectedDay != null }.selectedDay!!
+            vm.record(wordleText(day)).join()
+            vm.deleteSelected().join()
+
+            vm.dismissUndo(vm.undoable.value!!)
+
+            assertNull(vm.undoable.value)
             assertTrue(repo.entries.value.isEmpty())
         }
 

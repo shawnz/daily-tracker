@@ -370,8 +370,7 @@ private fun GameRow(
             when (row.status) {
                 is PuzzleStatus.Done -> R.string.result_done
                 is PuzzleStatus.Unreleased -> R.string.today_not_out
-                is PuzzleStatus.Unplayed -> R.string.today_not_played
-                is PuzzleStatus.Missed -> R.string.today_missed
+                is PuzzleStatus.Unplayed, is PuzzleStatus.Missed -> R.string.today_not_played
             },
         )
     Row(
@@ -425,6 +424,8 @@ private fun GameRow(
                     )
                 }
 
+                // When the rollover time is unknown, two days can be unplayed and only one of them
+                // is current, so the text is the same as for a missed day.
                 is PuzzleStatus.Unplayed -> {
                     Text(
                         text =
@@ -439,7 +440,7 @@ private fun GameRow(
                     Text(
                         text =
                             stringResource(
-                                if (onToday && status.currentPuzzleUnplayed) R.string.today_tomorrow_out else R.string.today_missed,
+                                if (onToday && status.currentPuzzleUnplayed) R.string.today_tomorrow_out else R.string.today_not_played,
                             ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

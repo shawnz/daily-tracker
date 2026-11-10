@@ -80,6 +80,12 @@ interface Repository {
     suspend fun deleteEntry(entry: EntryEntity)
 
     /**
+     * Writes [entry] back with its ID and completion time. Any other entry of the same game on the
+     * same day is replaced.
+     */
+    suspend fun restoreEntry(entry: EntryEntity)
+
+    /**
      * Moves each user-made game whose URL matches a catalog game onto that catalog game, so its
      * entries are read with the catalog's parser.
      *
@@ -215,6 +221,13 @@ class DefaultRepository
         }
 
         override suspend fun deleteEntry(entry: EntryEntity) = entryDao.delete(entry)
+
+        override suspend fun restoreEntry(entry: EntryEntity) {
+            database.withWriteTransaction {
+                entryDao.find(entry.gameId, entry.puzzleDay)?.let { entryDao.delete(it) }
+                entryDao.insert(entry)
+            }
+        }
 
         override suspend fun migrateCustomGames() =
             database.withWriteTransaction {
