@@ -396,7 +396,7 @@ private fun DayCard(
     val shownDay by rememberCurrentDay(pagerState)
     val day = shownDay ?: selected
 
-    Card(modifier.animateContentSize()) {
+    Card(modifier) {
         DayStepper(
             label = if (day == state.currentDeviceDay) stringResource(R.string.detail_today) else day.dayLabel(),
             canGoForward = day < last,
@@ -406,9 +406,11 @@ private fun DayCard(
         )
         // Each page has its own padding, so that its content slides up to the edges of the card.
         // A drag in the text field doesn't move to another day, because swiping is off while
-        // editing.
+        // editing. The height is animated inside the card, so that the surface of the card has the
+        // animated height.
         HorizontalPager(
             state = pagerState,
+            modifier = Modifier.animateContentSize(),
             verticalAlignment = Alignment.Top,
             userScrollEnabled = !editing,
             key = pages::key,
