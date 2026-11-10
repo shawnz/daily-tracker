@@ -40,6 +40,13 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        resources {
+            // The protobuf library includes the .proto files for its standard types. The lite
+            // runtime doesn't read them.
+            excludes += "**/*.proto"
+        }
+    }
 }
 
 room3 {
