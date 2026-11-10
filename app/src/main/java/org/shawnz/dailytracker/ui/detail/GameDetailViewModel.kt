@@ -26,61 +26,65 @@ import org.shawnz.dailytracker.data.dayChanges
 import org.shawnz.dailytracker.data.gameProgress
 import org.shawnz.dailytracker.ui.STOP_TIMEOUT_MILLIS
 import java.time.LocalDate
+import java.time.ZonedDateTime
 
 /**
  * The state of the detail screen for one game on one day.
  *
- * @property selectedDay The day shown on the day card, the only part of the screen that
- *   depends on it. Null until the game loads.
- * @property selectedStatus The state of the puzzle for [selectedDay]. Null until the game loads.
+ * @property selectedDay The day selected on the day card. Null until the game loads.
  * @property playedDays Every puzzle day with an entry. Highlighted in the day picker.
  * @property entries All of this game's entries, for its aggregate figures.
  * @property possiblePuzzleDays The range of days the game's puzzle day can be. Null until the game
- *   is loaded. The start is the day selected with
- *   the "Latest" button. The end is the last day that can be reached with the forward arrow or
- *   the day picker.
+ *   is loaded. The start is the day selected with the "Latest" button. The end is the last day of
+ *   the day card's pages and of the day picker.
+ * @property now The time that the state was computed for. The day cards are computed for the same
+ *   time. Null until the game loads.
  */
 data class DetailState(
     val game: Game? = null,
     val selectedDay: LocalDate? = null,
-    val selectedStatus: PuzzleStatus? = null,
-    val selectedEntry: EntryEntity? = null,
     val playedDays: Set<LocalDate> = emptySet(),
     val entries: List<EntryEntity> = emptyList(),
     val progress: GameProgress? = null,
     val possiblePuzzleDays: ClosedRange<LocalDate>? = null,
-    val currentDeviceDay: LocalDate? = null,
+    val now: ZonedDateTime? = null,
 ) {
-    val isToday: Boolean get() = selectedDay != null && selectedDay == currentDeviceDay
+    val currentDeviceDay: LocalDate? get() = now?.toLocalDate()
+
+    /** The day card for [day]. Null until the game loads. */
+    fun dayCard(day: LocalDate): DayCard? {
+        val game = game ?: return null
+        val possible = possiblePuzzleDays ?: return null
+        val now = now ?: return null
+        return DayCard(game, day, game.statusOn(day, entries, now), possible)
+    }
+
+    /** The day card for [selectedDay]. Null until the game loads. */
+    val selected: DayCard? get() = selectedDay?.let { dayCard(it) }
+}
+
+/**
+ * The contents of the day card for one day.
+ *
+ * @property status The state of the puzzle for [day].
+ * @property possiblePuzzleDays The range of days the game's puzzle day can be.
+ */
+data class DayCard(
+    val game: Game,
+    val day: LocalDate,
+    val status: PuzzleStatus,
+    val possiblePuzzleDays: ClosedRange<LocalDate>,
+) {
+    val entry: EntryEntity? get() = (status as? PuzzleStatus.Done)?.entry
+
+    /** The address the Play button opens, from [Game.playUrl]. Null when the puzzle can't be played. */
+    val playUrl: String? get() = game.playUrl(day, status, possiblePuzzleDays)
 
     /**
-     * The address the Play button opens, from [Game.playUrl]. Null when the selected puzzle can't
-     * be played, or until the game loads.
+     * The address the Open puzzle button opens: the page for the puzzle, when it is done. Null when
+     * the puzzle isn't done or the game has no such page.
      */
-    val playUrl: String?
-        get() {
-            val day = selectedDay ?: return null
-            val status = selectedStatus ?: return null
-            val possible = possiblePuzzleDays ?: return null
-            return game?.playUrl(day, status, possible)
-        }
-
-    /**
-     * The address the Open puzzle button opens: the page for the selected day's puzzle, when it is
-     * done. Null when the puzzle isn't done or the game has no such page.
-     */
-    val puzzleUrl: String?
-        get() {
-            val day = selectedDay ?: return null
-            if (selectedStatus !is PuzzleStatus.Done) return null
-            return game?.catalogGame?.dayUrl(day)
-        }
-
-    val canGoForward: Boolean
-        get() {
-            val last = possiblePuzzleDays?.endInclusive
-            return selectedDay != null && last != null && selectedDay < last
-        }
+    val puzzleUrl: String? get() = if (status is PuzzleStatus.Done) game.catalogGame?.dayUrl(day) else null
 }
 
 /**
@@ -143,19 +147,6 @@ class GameDetailViewModel
             chosenDay.value = day
         }
 
-        /**
-         * Moves by [days], never past the latest possible puzzle day.
-         *
-         * There is no earliest day, because a game may have been played for years before it was
-         * added here.
-         */
-        fun stepDay(days: Long) {
-            val now = state.value
-            val day = now.selectedDay ?: return
-            if (days > 0 && !now.canGoForward) return
-            chosenDay.value = day.plusDays(days)
-        }
-
         private val _undoable = MutableStateFlow<UndoableChange?>(null)
 
         /** The last [UndoableChange], until it is undone or dismissed. */
@@ -170,7 +161,7 @@ class GameDetailViewModel
                 val game = repo.getGame(gameId) ?: return@launch
                 val day = state.value.selectedDay ?: return@launch
                 // A puzzle that isn't released yet can't have a result.
-                if (state.value.selectedStatus is PuzzleStatus.Unreleased) return@launch
+                if (state.value.selected?.status is PuzzleStatus.Unreleased) return@launch
                 val saved = text?.takeIf { it.isNotBlank() }
                 val previous = repo.entryFor(game, day)
                 repo.record(game, saved, day)
@@ -237,17 +228,15 @@ private fun detailState(
     chosen: LocalDate?,
     openingDay: LocalDate,
 ): DetailState {
-    val possible = game?.possiblePuzzleDays(entries)
+    val now = ZonedDateTime.now()
     val day = chosen ?: openingDay.takeIf { game != null }
     return DetailState(
         game = game,
         selectedDay = day,
-        selectedStatus = day?.let { game?.statusOn(it, entries) },
-        selectedEntry = day?.let { on -> entries.firstOrNull { it.puzzleDay == on } },
         playedDays = entries.mapTo(HashSet()) { it.puzzleDay },
         entries = entries,
         progress = game?.let { gameProgress(it, entries) },
-        possiblePuzzleDays = possible,
-        currentDeviceDay = LocalDate.now(),
+        possiblePuzzleDays = game?.possiblePuzzleDays(entries, now),
+        now = now.takeIf { game != null },
     )
 }

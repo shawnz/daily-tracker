@@ -7,11 +7,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.pow
-import kotlin.random.Random
+import kotlin.math.roundToInt
 
 private val TileSize = 40.dp
 
@@ -33,94 +34,105 @@ private const val FILLED_FREQUENCY = 4
 private const val OUTLINED_FREQUENCY = 2
 private const val EMPTY_FREQUENCY = 2
 
-private const val SEED = 7
-
-private class Tile(
-    val topLeft: Offset,
-    val outlined: Boolean,
-    val alpha: Float,
-)
+private const val SEED = 7L
 
 /**
  * Draws a faint grid of the launcher icon's tiles in [color] behind the content. Each cell is
- * filled, outlined or empty. The tiles at the left, right and bottom edges are cut off, so the
- * grid looks like part of a larger one.
+ * filled, outlined or empty.
  *
- * The tiles fade out towards the top. [contentBottom] is the distance from the top edge to the
- * bottom of the content. The larger it is, the faster the fade, so that fewer tiles are visible
- * behind the content.
+ * The grid continues without end to both sides. [position] is the horizontal scroll position, in
+ * widths of the content. A column is centred on each side edge and a row on the bottom edge, so the
+ * tiles there are cut in half and the grid looks like part of a larger one.
+ *
+ * The tiles fade out towards the top. [coverage] is the fraction of the band of tiles that is
+ * behind the content, from [tileCoverage]. The larger it is, the faster the fade, so that fewer
+ * tiles are visible behind the content.
  */
 internal fun Modifier.tileBackdrop(
     color: Color,
-    contentBottom: Density.() -> Float,
+    position: () -> Double,
+    coverage: () -> Float,
 ): Modifier =
     drawWithCache {
-        // The proportions of art/icon-monochrome.svg, where a tile is 128 units.
-        val tile = TileSize.toPx()
-        val gutter = tile / 4
-        val pitch = tile + gutter
+        // A whole number of columns fits the width, so the tile size is scaled to the width.
+        val columns = (size.width / (TileSize.toPx() * 5 / 4)).roundToInt().coerceAtLeast(1)
+        val pitch = size.width / columns
+        // The proportions of art/icon-monochrome.svg, where a tile is 128 units and a gutter 32.
+        val tile = pitch * 4 / 5
         val stroke = tile / 8
         val filledRadius = CornerRadius(tile * 30 / 128)
         val outlinedRadius = CornerRadius(tile * 22 / 128)
+        val rows = ceil(size.height * BAND_HEIGHT / pitch).toInt()
+        val mirrored = layoutDirection == LayoutDirection.Rtl
 
-        // Centred, so the same width is cut off the first and last columns. The same height is
-        // cut off the bottom row.
-        val columns = ceil((size.width + gutter) / pitch).toInt()
-        val overhang = (columns * pitch - gutter - size.width) / 2
-        val firstColumnLeft = -overhang
-        val bottomRowTop = size.height - tile + overhang
-
-        val band = size.height * BAND_HEIGHT
-        val rows = ceil(band / pitch).toInt()
-        val covered = ((contentBottom() - (size.height - band)) / band).coerceIn(0f, 1f)
-        val gamma = MIN_GAMMA + (MAX_GAMMA - MIN_GAMMA) * covered
-
-        val random = Random(SEED)
-        val drawn = FILLED_FREQUENCY + OUTLINED_FREQUENCY
-        val tiles =
-            buildList {
-                for (row in 0 until rows) {
-                    val alpha = MAX_ALPHA * ((rows - row).toFloat() / rows).pow(gamma)
-                    for (column in 0 until columns) {
-                        val kind = random.nextInt(drawn + EMPTY_FREQUENCY)
-                        if (kind >= drawn) continue
-                        add(
-                            Tile(
-                                topLeft =
-                                    Offset(
-                                        x = firstColumnLeft + column * pitch,
-                                        y = bottomRowTop - row * pitch,
-                                    ),
-                                outlined = kind >= FILLED_FREQUENCY,
-                                alpha = alpha,
-                            ),
+        onDrawBehind {
+            val gamma = MIN_GAMMA + (MAX_GAMMA - MIN_GAMMA) * coverage()
+            val scroll = position() * columns
+            val firstColumn = floor(scroll).toLong()
+            val shift = ((scroll - firstColumn) * pitch).toFloat()
+            for (row in 0 until rows) {
+                val alpha = MAX_ALPHA * ((rows - row).toFloat() / rows).pow(gamma)
+                val top = size.height - tile / 2 - row * pitch
+                // Without a scroll, columns 0 and [columns] are centred on the edges. During a
+                // scroll, column [columns] + 1 can also be partly visible.
+                for (i in 0..columns + 1) {
+                    val kind = cellKind(row, firstColumn + i)
+                    if (kind >= FILLED_FREQUENCY + OUTLINED_FREQUENCY) continue
+                    val centre = i * pitch - shift
+                    val topLeft = Offset((if (mirrored) size.width - centre else centre) - tile / 2, top)
+                    if (kind >= FILLED_FREQUENCY) {
+                        // Stroked inside the tile's square, so it occupies the same area as a
+                        // filled one.
+                        drawRoundRect(
+                            color = color,
+                            topLeft = topLeft + Offset(stroke / 2, stroke / 2),
+                            size = Size(tile - stroke, tile - stroke),
+                            cornerRadius = outlinedRadius,
+                            style = Stroke(stroke),
+                            alpha = alpha,
+                        )
+                    } else {
+                        drawRoundRect(
+                            color = color,
+                            topLeft = topLeft,
+                            size = Size(tile, tile),
+                            cornerRadius = filledRadius,
+                            alpha = alpha,
                         )
                     }
                 }
             }
-
-        onDrawBehind {
-            for (t in tiles) {
-                if (t.outlined) {
-                    // Stroked inside the tile's square, so it occupies the same area as a
-                    // filled one.
-                    drawRoundRect(
-                        color = color,
-                        topLeft = t.topLeft + Offset(stroke / 2, stroke / 2),
-                        size = Size(tile - stroke, tile - stroke),
-                        cornerRadius = outlinedRadius,
-                        style = Stroke(stroke),
-                        alpha = t.alpha,
-                    )
-                } else {
-                    drawRoundRect(
-                        color = color,
-                        topLeft = t.topLeft,
-                        size = Size(tile, tile),
-                        cornerRadius = filledRadius,
-                        alpha = t.alpha,
-                    )
-                }
-            }
         }
     }
+
+/**
+ * The fraction of the band of tiles of a [tileBackdrop] that is behind its content. [contentBottom]
+ * is the distance from the top of the backdrop to the bottom of the content, and [height] is the
+ * height of the backdrop.
+ */
+internal fun tileCoverage(
+    contentBottom: Float,
+    height: Float,
+): Float {
+    if (height <= 0f) return 0f
+    val band = height * BAND_HEIGHT
+    return ((contentBottom - (height - band)) / band).coerceIn(0f, 1f)
+}
+
+/**
+ * The kind of the cell at [row] and [column]: filled below [FILLED_FREQUENCY], then outlined below
+ * the sum with [OUTLINED_FREQUENCY], then empty. It depends only on the place of the cell, so the
+ * cell is the same at every scroll position.
+ */
+private fun cellKind(
+    row: Int,
+    column: Long,
+): Int {
+    // One step of SplitMix64 with the place of the cell as its state, so that the kinds of
+    // neighbouring cells are unrelated.
+    var z = (column shl 32) + row + SEED + 0x9E3779B97F4A7C15uL.toLong()
+    z = (z xor (z ushr 30)) * 0xBF58476D1CE4E5B9uL.toLong()
+    z = (z xor (z ushr 27)) * 0x94D049BB133111EBuL.toLong()
+    z = z xor (z ushr 31)
+    return z.mod(FILLED_FREQUENCY + OUTLINED_FREQUENCY + EMPTY_FREQUENCY)
+}

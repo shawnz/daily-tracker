@@ -24,6 +24,8 @@ import org.shawnz.dailytracker.testdoubles.FakeRepository
 import org.shawnz.dailytracker.testdoubles.testGame
 import org.shawnz.dailytracker.testdoubles.wordleText
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameDetailViewModelTest {
@@ -235,35 +237,6 @@ class GameDetailViewModelTest {
         }
 
     @Test
-    fun `the stepper stops at the current puzzle day`() =
-        runTest(dispatcher) {
-            val vm = viewModel(FakeRepository(games = listOf(game)))
-            backgroundScope.launch { vm.state.collect {} }
-            val day = vm.state.first { it.selectedDay != null }.selectedDay
-
-            vm.stepDay(1)
-            runCurrent()
-
-            assertEquals(day, vm.state.value.selectedDay)
-        }
-
-    @Test
-    fun `with an unknown rollover time, the stepper stops at the latest possible puzzle day`() =
-        runTest(dispatcher) {
-            val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
-            val vm = viewModel(FakeRepository(games = listOf(raddle)))
-            backgroundScope.launch { vm.state.collect {} }
-            vm.state.first { it.selectedDay != null }
-
-            repeat(3) {
-                vm.stepDay(1)
-                runCurrent()
-            }
-
-            assertEquals(raddle.possiblePuzzleDays(entries = emptyList()).endInclusive, vm.state.value.selectedDay)
-        }
-
-    @Test
     fun `the page opens on the day it was opened for`() =
         runTest(dispatcher) {
             val raddle = testGame(id = game.id, source = CatalogGame.RADDLE)
@@ -274,7 +247,7 @@ class GameDetailViewModelTest {
             val state = vm.state.first { it.selectedDay != null }
 
             assertEquals(last, state.selectedDay)
-            assertEquals(entry, state.selectedEntry)
+            assertEquals(entry, state.selected?.entry)
         }
 
     @Test
@@ -286,7 +259,7 @@ class GameDetailViewModelTest {
             val state = vm.state.first { it.selectedDay != null }
 
             assertEquals(later, state.selectedDay)
-            assertTrue(state.selectedStatus is PuzzleStatus.Unreleased)
+            assertTrue(state.selected?.status is PuzzleStatus.Unreleased)
         }
 
     @Test
@@ -325,68 +298,54 @@ class GameDetailViewModelTest {
 
     // A game with an unknown rollover time has two possible puzzle days.
     @Test
-    fun `play opens the selected day's puzzle`() {
-        val state =
-            DetailState(
-                game = raddle,
-                selectedDay = september14,
-                selectedStatus = unplayed,
-                possiblePuzzleDays = september14..september14.plusDays(1),
-            )
+    fun `play opens the card's puzzle`() {
+        val card = DayCard(raddle, september14, unplayed, september14..september14.plusDays(1))
 
-        assertEquals("https://raddle.quest/2026/09/14/", state.playUrl)
+        assertEquals("https://raddle.quest/2026/09/14/", card.playUrl)
     }
 
     @Test
     fun `play opens the game's page when the game has no page for each puzzle`() {
-        val state =
-            DetailState(
-                game = game,
-                selectedDay = september14,
-                selectedStatus = unplayed,
-                possiblePuzzleDays = september14..september14,
-            )
+        val card = DayCard(game, september14, unplayed, september14..september14)
 
-        assertEquals(game.url, state.playUrl)
+        assertEquals(game.url, card.playUrl)
     }
 
     @Test
     fun `a done puzzle can be opened and not played`() {
-        val state =
-            DetailState(
-                game = raddle,
-                selectedDay = september14,
-                selectedStatus = done(raddle),
-                possiblePuzzleDays = september14..september14.plusDays(1),
-            )
+        val card = DayCard(raddle, september14, done(raddle), september14..september14.plusDays(1))
 
-        assertNull(state.playUrl)
-        assertEquals("https://raddle.quest/2026/09/14/", state.puzzleUrl)
+        assertNull(card.playUrl)
+        assertEquals("https://raddle.quest/2026/09/14/", card.puzzleUrl)
     }
 
     @Test
     fun `a done puzzle of a game with no page for each puzzle can't be opened`() {
-        val state =
-            DetailState(
-                game = game,
-                selectedDay = september14,
-                selectedStatus = done(game),
-                possiblePuzzleDays = september14..september14,
-            )
+        val card = DayCard(game, september14, done(game), september14..september14)
 
-        assertNull(state.puzzleUrl)
+        assertNull(card.puzzleUrl)
     }
 
     @Test
     fun `an unplayed puzzle has no puzzle to open`() {
+        val card = DayCard(raddle, september14, unplayed, september14..september14.plusDays(1))
+
+        assertNull(card.puzzleUrl)
+    }
+
+    // Its puzzle changes at midnight in New York. At 09:00 on the 17th in Sydney, it is still the
+    // 16th in New York, so the puzzle for the 17th isn't out yet.
+    @Test
+    fun `a day card is computed for the time of the state`() {
+        val cluesBySam = testGame(id = 9, source = CatalogGame.CLUES_BY_SAM)
+        val now = LocalDateTime.parse("2026-10-17T09:00").atZone(ZoneId.of("Australia/Sydney"))
         val state =
             DetailState(
-                game = raddle,
-                selectedDay = september14,
-                selectedStatus = unplayed,
-                possiblePuzzleDays = september14..september14.plusDays(1),
+                game = cluesBySam,
+                possiblePuzzleDays = cluesBySam.possiblePuzzleDays(emptyList(), now),
+                now = now,
             )
 
-        assertNull(state.puzzleUrl)
+        assertTrue(state.dayCard(LocalDate.of(2026, 10, 17))?.status is PuzzleStatus.Unreleased)
     }
 }

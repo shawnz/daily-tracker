@@ -1,6 +1,7 @@
 package org.shawnz.dailytracker.ui.detail
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,6 +45,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,16 +58,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.browser.CustomTabLauncher
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.PuzzleStatus
+import org.shawnz.dailytracker.ui.DayPagerSelection
+import org.shawnz.dailytracker.ui.DayPages
 import org.shawnz.dailytracker.ui.DayPickerDialog
 import org.shawnz.dailytracker.ui.PageMargin
 import org.shawnz.dailytracker.ui.TooltipIconButton
+import org.shawnz.dailytracker.ui.animateScrollByPages
 import org.shawnz.dailytracker.ui.dayLabel
 import org.shawnz.dailytracker.ui.games.EntryDetail
 import org.shawnz.dailytracker.ui.hostLabel
+import org.shawnz.dailytracker.ui.rememberCurrentDay
 import org.shawnz.dailytracker.ui.shareText
 import org.shawnz.dailytracker.ui.stats.GameStatLines
 import org.shawnz.dailytracker.ui.timeText
@@ -221,15 +230,15 @@ internal fun GameDetailScreen(
                     draft = draft,
                     editing = editing,
                     onDraftChange = { draft = it },
-                    onStep = { viewModel.stepDay(it) },
+                    onSelectDay = viewModel::selectDay,
                     onPickDay = { pickingDay = true },
                     onOpen = { CustomTabLauncher.launch(context, it, toolbarColor) },
                     onAdd = {
                         draft = ""
                         editing = true
                     },
-                    onEdit = {
-                        draft = state.selectedEntry?.rawShareText.orEmpty()
+                    onEdit = { card ->
+                        draft = card.entry?.rawShareText.orEmpty()
                         editing = true
                     },
                     onCancelEdit = { editing = false },
@@ -237,8 +246,8 @@ internal fun GameDetailScreen(
                         viewModel.record(draft)
                         editing = false
                     },
-                    onShare = {
-                        state.selectedEntry?.rawShareText?.let { shareText(context, it) }
+                    onShare = { card ->
+                        card.entry?.rawShareText?.let { shareText(context, it) }
                     },
                     onDelete = {
                         viewModel.deleteSelected()
@@ -353,8 +362,8 @@ private fun GameHeader(
 }
 
 /**
- * The selected day's entry, with controls to change it. The drawn result is shown, and the
- * saved text only while editing.
+ * A stepper for the day, above that day's entry and the controls to change it. A swipe or a step
+ * slides the entry to another day, and the stepper stays in place.
  */
 @Composable
 private fun DayCard(
@@ -363,8 +372,74 @@ private fun DayCard(
     draft: String,
     editing: Boolean,
     onDraftChange: (String) -> Unit,
-    onStep: (Long) -> Unit,
+    onSelectDay: (LocalDate) -> Unit,
     onPickDay: () -> Unit,
+    onOpen: (url: String) -> Unit,
+    onAdd: () -> Unit,
+    onEdit: (DayCard) -> Unit,
+    onCancelEdit: () -> Unit,
+    onSave: () -> Unit,
+    onShare: (DayCard) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selected = state.selectedDay ?: return
+    val last = state.possiblePuzzleDays?.endInclusive ?: return
+    // A game may have been played for years before it was added here, so the pages go back a
+    // century.
+    val pages = remember(last) { DayPages(last.minusYears(100), last) }
+    val pagerState = rememberPagerState(pages.pageOf(selected)) { pages.count }
+    DayPagerSelection(pagerState, pages, selected, onSelectDay)
+    val scope = rememberCoroutineScope()
+
+    // The stepper is for the date of the current page.
+    val shownDay by rememberCurrentDay(pagerState)
+    val day = shownDay ?: selected
+
+    Card(modifier.animateContentSize()) {
+        DayStepper(
+            label = if (day == state.currentDeviceDay) stringResource(R.string.detail_today) else day.dayLabel(),
+            canGoForward = day < last,
+            onStep = { scope.launch { pagerState.animateScrollByPages(it) } },
+            onPickDay = onPickDay,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+        )
+        // Each page has its own padding, so that its content slides up to the edges of the card.
+        // A drag in the text field doesn't move to another day, because swiping is off while
+        // editing.
+        HorizontalPager(
+            state = pagerState,
+            verticalAlignment = Alignment.Top,
+            userScrollEnabled = !editing,
+            key = pages::key,
+        ) { page ->
+            val pageDay = pages.dayOf(page)
+            val card = remember(state, pageDay) { state.dayCard(pageDay) } ?: return@HorizontalPager
+            DayContent(
+                card = card,
+                draft = draft,
+                editing = editing && pageDay == selected,
+                onDraftChange = onDraftChange,
+                onOpen = onOpen,
+                onAdd = onAdd,
+                onEdit = { onEdit(card) },
+                onCancelEdit = onCancelEdit,
+                onSave = onSave,
+                onShare = { onShare(card) },
+                onDelete = onDelete,
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
+            )
+        }
+    }
+}
+
+/** The entry for the day of [card], with controls to change it. The saved text is shown only while editing. */
+@Composable
+private fun DayContent(
+    card: DayCard,
+    draft: String,
+    editing: Boolean,
+    onDraftChange: (String) -> Unit,
     onOpen: (url: String) -> Unit,
     onAdd: () -> Unit,
     onEdit: () -> Unit,
@@ -374,67 +449,52 @@ private fun DayCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val entry = state.selectedEntry
-    Card(modifier) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            DayStepper(
-                label =
-                    when {
-                        state.isToday -> stringResource(R.string.detail_today)
-                        else -> state.selectedDay?.dayLabel().orEmpty()
-                    },
-                canGoForward = state.canGoForward,
-                onStep = onStep,
-                onPickDay = onPickDay,
-            )
+    val game = card.game
+    val entry = card.entry
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val status = card.status
+        when {
+            status is PuzzleStatus.Unreleased -> {
+                Text(
+                    status.nextRollover?.let {
+                        val time = it.atZone(ZoneId.systemDefault()).toLocalTime()
+                        stringResource(R.string.today_next_puzzle_at, timeText(time))
+                    } ?: stringResource(R.string.today_not_out),
+                    modifier = Modifier.padding(horizontal = ButtonOverhang),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
-            val status = state.selectedStatus
-            when {
-                status is PuzzleStatus.Unreleased -> {
-                    Text(
-                        status.nextRollover?.let {
-                            val time = it.atZone(ZoneId.systemDefault()).toLocalTime()
-                            stringResource(R.string.today_next_puzzle_at, timeText(time))
-                        } ?: stringResource(R.string.today_not_out),
-                        modifier = Modifier.padding(horizontal = ButtonOverhang),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            editing -> {
+                EntryEditor(
+                    game = game,
+                    draft = draft,
+                    hasEntry = entry != null,
+                    onDraftChange = onDraftChange,
+                    onCancel = onCancelEdit,
+                    onSave = onSave,
+                    onDelete = onDelete,
+                )
+            }
 
-                editing -> {
-                    EntryEditor(
-                        game = game,
-                        draft = draft,
-                        hasEntry = entry != null,
-                        onDraftChange = onDraftChange,
-                        onCancel = onCancelEdit,
-                        onSave = onSave,
-                        onDelete = onDelete,
-                    )
-                }
+            entry != null -> {
+                EntryDetail(game, entry, Modifier.padding(horizontal = ButtonOverhang))
+                EntryActions(
+                    puzzleUrl = card.puzzleUrl,
+                    canShare = !entry.rawShareText.isNullOrBlank(),
+                    onOpen = onOpen,
+                    onShare = onShare,
+                    onEdit = onEdit,
+                )
+            }
 
-                entry != null -> {
-                    EntryDetail(game, entry, Modifier.padding(horizontal = ButtonOverhang))
-                    EntryActions(
-                        puzzleUrl = state.puzzleUrl,
-                        canShare = !entry.rawShareText.isNullOrBlank(),
-                        onOpen = onOpen,
-                        onShare = onShare,
-                        onEdit = onEdit,
-                    )
-                }
-
-                else -> {
-                    NoEntry(
-                        playUrl = state.playUrl,
-                        onOpen = onOpen,
-                        onAdd = onAdd,
-                    )
-                }
+            else -> {
+                NoEntry(
+                    playUrl = card.playUrl,
+                    onOpen = onOpen,
+                    onAdd = onAdd,
+                )
             }
         }
     }
@@ -614,7 +674,7 @@ private fun EntryEditor(
 private fun DayStepper(
     label: String,
     canGoForward: Boolean,
-    onStep: (Long) -> Unit,
+    onStep: (Int) -> Unit,
     onPickDay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

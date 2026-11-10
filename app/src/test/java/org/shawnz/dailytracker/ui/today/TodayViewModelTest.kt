@@ -11,7 +11,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotSame
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -42,12 +43,16 @@ class TodayViewModelTest {
             puzzleDay = wordle.possiblePuzzleDays(entries = emptyList()).start,
         )
 
+    private suspend fun TodayViewModel.loadedFrame() = frame.first { it != null }!!
+
+    private suspend fun TodayViewModel.loadedState(day: LocalDate) = stateOn(day).first { it != null }!!
+
     @Test
     fun `a game with no entry for today is not done`() =
         runTest(dispatcher) {
             val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
 
-            val state = vm.state.first { it != null }!!
+            val state = vm.loadedState(LocalDate.now())
 
             assertTrue(state.rows.single().status is PuzzleStatus.Unplayed)
             assertEquals(0, state.doneCount)
@@ -59,7 +64,7 @@ class TodayViewModelTest {
             val repo = FakeRepository(games = listOf(wordle), entries = listOf(entryToday()))
             val vm = TodayViewModel(repo)
 
-            val state = vm.state.first { it != null }!!
+            val state = vm.loadedState(LocalDate.now())
 
             assertTrue(state.rows.single().status is PuzzleStatus.Done)
             assertEquals(1, state.doneCount)
@@ -71,7 +76,7 @@ class TodayViewModelTest {
             val saved = entryToday().copy(completedAt = Instant.now().minus(Duration.ofDays(2)))
             val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(saved)))
 
-            val state = vm.state.first { it != null }!!
+            val state = vm.loadedState(LocalDate.now())
 
             assertEquals(PuzzleStatus.Done(saved), state.rows.single().status)
             assertEquals(1, state.doneCount)
@@ -87,7 +92,7 @@ class TodayViewModelTest {
                 )
             val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(yesterday)))
 
-            val state = vm.state.first { it != null }!!
+            val state = vm.loadedState(LocalDate.now())
 
             assertTrue(state.rows.single().status is PuzzleStatus.Unplayed)
         }
@@ -99,7 +104,7 @@ class TodayViewModelTest {
                 FakeRepository(games = listOf(wordle, testGame(id = 2).copy(archived = true)))
             val vm = TodayViewModel(repo)
 
-            val state = vm.state.first { it != null }!!
+            val state = vm.loadedState(LocalDate.now())
 
             assertEquals(listOf(1L), state.rows.map { it.game.id })
         }
@@ -109,51 +114,47 @@ class TodayViewModelTest {
         runTest(dispatcher) {
             val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
 
-            val state = vm.state.first { it != null }!!
-
-            assertEquals(LocalDate.now(), state.day)
+            assertEquals(LocalDate.now(), vm.loadedFrame().day)
         }
 
     @Test
-    fun `with no results, the page can't go back`() =
+    fun `with no results, the device's date is the earliest date`() =
         runTest(dispatcher) {
             val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
 
-            assertFalse(vm.state.first { it != null }!!.canGoBack)
+            assertEquals(LocalDate.now(), vm.loadedFrame().earliestDay)
         }
 
     // Its puzzle changes at local midnight, so no later puzzle day is possible.
     @Test
-    fun `the page can't go past the latest possible puzzle day`() =
+    fun `a date after the latest possible puzzle day can't be selected`() =
         runTest(dispatcher) {
             val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
-            backgroundScope.launch { vm.state.collect {} }
-            vm.state.first { it != null }
+            backgroundScope.launch { vm.frame.collect {} }
+            vm.loadedFrame()
 
-            vm.stepDay(1)
+            vm.selectDay(LocalDate.now().plusDays(1))
             runCurrent()
 
-            assertEquals(LocalDate.now(), vm.state.value!!.day)
-            assertFalse(vm.state.value!!.canGoForward)
+            val frame = vm.frame.value!!
+            assertEquals(LocalDate.now(), frame.day)
+            assertEquals(LocalDate.now(), frame.latestDay)
         }
 
     @Test
-    fun `the page goes back as far as the earliest result and shows it`() =
+    fun `the earliest result is the earliest date`() =
         runTest(dispatcher) {
             val earliest = entryToday().copy(puzzleDay = entryToday().puzzleDay.minusDays(2))
             val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(earliest)))
-            backgroundScope.launch { vm.state.collect {} }
-            vm.state.first { it != null }
+            backgroundScope.launch { vm.frame.collect {} }
+            vm.loadedFrame()
 
-            repeat(3) {
-                vm.stepDay(-1)
-                runCurrent()
-            }
+            vm.selectDay(earliest.puzzleDay.minusDays(1))
+            runCurrent()
 
-            val state = vm.state.value!!
-            assertEquals(earliest.puzzleDay, state.day)
-            assertFalse(state.canGoBack)
-            assertEquals(PuzzleStatus.Done(earliest), state.rows.single().status)
+            val frame = vm.frame.value!!
+            assertEquals(earliest.puzzleDay, frame.earliestDay)
+            assertEquals(earliest.puzzleDay, frame.day)
         }
 
     @Test
@@ -161,21 +162,52 @@ class TodayViewModelTest {
         runTest(dispatcher) {
             val earliest = entryToday().copy(puzzleDay = entryToday().puzzleDay.minusDays(2))
             val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(earliest)))
-            backgroundScope.launch { vm.state.collect {} }
-            vm.state.first { it != null }
 
-            vm.stepDay(-1)
-            runCurrent()
+            val state = vm.loadedState(entryToday().puzzleDay.minusDays(1))
 
-            val state = vm.state.value!!
             assertEquals(PuzzleStatus.Missed(currentPuzzleUnplayed = true), state.rows.single().status)
         }
 
+    @Test
+    fun `the page for another date has that date's results`() =
+        runTest(dispatcher) {
+            val earlier = entryToday().copy(puzzleDay = entryToday().puzzleDay.minusDays(2))
+            val vm = TodayViewModel(FakeRepository(listOf(wordle), listOf(earlier)))
+
+            val state = vm.loadedState(earlier.puzzleDay)
+
+            assertEquals(earlier.puzzleDay, state.day)
+            assertEquals(PuzzleStatus.Done(earlier), state.rows.single().status)
+            assertEquals(LocalDate.now(), vm.loadedFrame().day)
+        }
+
+    @Test
+    fun `a date's flow is kept while it is among the recently used dates`() {
+        val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
+        val day = LocalDate.now()
+        val flow = vm.stateOn(day)
+
+        repeat(DAY_STATES_KEPT - 1) { vm.stateOn(day.minusDays(it + 1L)) }
+
+        assertSame(flow, vm.stateOn(day))
+    }
+
+    @Test
+    fun `a date's flow is removed when more than the kept number of other dates are used`() {
+        val vm = TodayViewModel(FakeRepository(games = listOf(wordle)))
+        val day = LocalDate.now()
+        val flow = vm.stateOn(day)
+
+        repeat(DAY_STATES_KEPT) { vm.stateOn(day.minusDays(it + 1L)) }
+
+        assertNotSame(flow, vm.stateOn(day))
+    }
+
     // Null means not loaded yet, so the empty state isn't shown while loading.
     @Test
-    fun `the state is null until the games have been read`() =
+    fun `the frame is null until the games have been read`() =
         runTest(dispatcher) {
             val vm = TodayViewModel(FakeRepository())
-            assertEquals(null, vm.state.value)
+            assertEquals(null, vm.frame.value)
         }
 }

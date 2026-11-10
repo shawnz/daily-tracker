@@ -1,5 +1,6 @@
 package org.shawnz.dailytracker.ui.today
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -20,6 +21,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,18 +37,25 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -60,23 +71,33 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 import org.shawnz.dailytracker.R
 import org.shawnz.dailytracker.browser.CustomTabLauncher
 import org.shawnz.dailytracker.data.PuzzleStatus
+import org.shawnz.dailytracker.ui.DayPagerSelection
+import org.shawnz.dailytracker.ui.DayPages
 import org.shawnz.dailytracker.ui.DayPickerDialog
 import org.shawnz.dailytracker.ui.PageMargin
 import org.shawnz.dailytracker.ui.TooltipIconButton
+import org.shawnz.dailytracker.ui.animateScrollByPages
+import org.shawnz.dailytracker.ui.dayAt
 import org.shawnz.dailytracker.ui.dayLabel
 import org.shawnz.dailytracker.ui.games.EntrySummary
+import org.shawnz.dailytracker.ui.rememberCurrentDay
 import org.shawnz.dailytracker.ui.shareText
 import org.shawnz.dailytracker.ui.timeText
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.floor
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
@@ -87,7 +108,8 @@ import kotlin.time.Duration.Companion.minutes
 private val TopBarInset = PageMargin - 16.dp
 
 /**
- * The tracked games' puzzles for one date, and the [PuzzleStatus] of each one.
+ * The tracked games' puzzles for one date, and the [PuzzleStatus] of each one. A swipe, or an
+ * arrow in the top bar, moves to the previous or next date.
  *
  * Every gesture on a row opens the game's detail page on that date. A tap also opens the row's
  * [GameRowState.siteUrl] in a Custom Tab.
@@ -102,31 +124,42 @@ internal fun TodayScreen(
     modifier: Modifier = Modifier,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
-    val today = viewModel.state.collectAsStateWithLifecycle().value
+    val frame = viewModel.frame.collectAsStateWithLifecycle().value
     val context = LocalContext.current
     val resources = LocalResources.current
-    val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
     var pickingDay by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    // Created once the dates are loaded, because the pager opens on the selected date.
+    val pages = frame?.let { remember(it.earliestDay, it.latestDay) { DayPages(it.earliestDay, it.latestDay) } }
+    val pagerState = if (frame != null && pages != null) rememberPagerState(pages.pageOf(frame.day)) { pages.count } else null
+    if (frame != null && pages != null && pagerState != null) {
+        DayPagerSelection(pagerState, pages, frame.day, viewModel::selectDay)
+    }
+
+    // The top bar is for the date of the current page.
+    val shownDay = pagerState?.let { rememberCurrentDay(it).value } ?: frame?.day
+    val shown = shownDay?.let { viewModel.stateOn(it).collectAsStateWithLifecycle().value }
 
     // Unplayed games, in list order, are the ones most likely to be opened next.
-    LaunchedEffect(today?.rows) {
-        val rows = today?.rows ?: return@LaunchedEffect
+    LaunchedEffect(shown?.rows) {
+        val rows = shown?.rows ?: return@LaunchedEffect
         CustomTabLauncher.prepare(rows.filter { it.status is PuzzleStatus.Unplayed }.mapNotNull { it.siteUrl })
     }
 
-    if (pickingDay && today != null) {
+    if (pickingDay && frame != null && shownDay != null) {
         val playedDays by viewModel.playedDays.collectAsStateWithLifecycle()
         DayPickerDialog(
-            selected = today.day,
-            latest = today.today,
-            last = today.latestDay,
+            selected = shownDay,
+            latest = frame.today,
+            last = frame.latestDay,
             playedDays = playedDays,
             onPick = {
                 pickingDay = false
                 viewModel.selectDay(it)
             },
             onDismiss = { pickingDay = false },
-            first = today.earliestDay,
+            first = frame.earliestDay,
             latestLabel = R.string.today_title,
         )
     }
@@ -136,10 +169,12 @@ internal fun TodayScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    if (today != null) {
+                    if (shown != null && frame != null && pagerState != null) {
                         DayTitle(
-                            state = today,
-                            onStep = { viewModel.stepDay(it) },
+                            state = shown,
+                            canGoBack = shown.day > frame.earliestDay,
+                            canGoForward = shown.day < frame.latestDay,
+                            onStep = { scope.launch { pagerState.animateScrollByPages(it) } },
                             onPickDay = { pickingDay = true },
                         )
                     }
@@ -149,20 +184,20 @@ internal fun TodayScreen(
                         icon = R.drawable.ic_share,
                         description = stringResource(R.string.action_share),
                         onClick = {
-                            val state = today ?: return@TooltipIconButton
+                            val state = shown ?: return@TooltipIconButton
                             shareText(
                                 context,
                                 todayShareText(state.rows, state.day, resources),
                             )
                         },
-                        enabled = today != null && today.doneCount > 0,
+                        enabled = shown != null && shown.doneCount > 0,
                         position = TooltipAnchorPosition.Below,
                     )
                     TooltipIconButton(
                         icon = R.drawable.ic_leaderboard,
                         description = stringResource(R.string.action_stats),
                         onClick = onStats,
-                        enabled = !today?.rows.isNullOrEmpty(),
+                        enabled = frame?.gamesTracked == true,
                         position = TooltipAnchorPosition.Below,
                     )
                     TooltipIconButton(
@@ -181,52 +216,161 @@ internal fun TodayScreen(
             }
         },
     ) { padding ->
-        val rows = today?.rows
-        val listState = rememberLazyListState()
-        val listBottom by remember(listState) { derivedStateOf { listState.contentBottom() } }
-        val listTop = padding.calculateTopPadding()
+        val listTop = with(LocalDensity.current) { padding.calculateTopPadding().toPx() }
+        val listStates = remember { mutableStateMapOf<LocalDate, LazyListState>() }
+        var height by remember { mutableIntStateOf(0) }
+        val coverage by rememberTileCoverage(pagerState, listStates, frame, listTop, height.toFloat())
 
         Box(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .tileBackdrop(MaterialTheme.colorScheme.onSurface) {
-                        if (rows.isNullOrEmpty()) 0f else listTop.toPx() + listBottom
-                    },
+                    .onSizeChanged { height = it.height }
+                    .tileBackdrop(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        position = {
+                            pagerState?.position() ?: (frame?.day ?: LocalDate.now()).toEpochDay().toDouble()
+                        },
+                        coverage = { coverage },
+                    ),
         ) {
             when {
                 // Nothing is drawn over the backdrop until the games have loaded, so the empty
                 // state is only shown when the user doesn't track any games.
-                today == null -> {}
+                frame == null || pages == null || pagerState == null -> {}
 
-                today.rows.isEmpty() -> {
+                !frame.gamesTracked -> {
                     EmptyState(modifier = Modifier.padding(padding))
                 }
 
                 else -> {
-                    LazyColumn(
-                        state = listState,
+                    // The pages on either side are composed in advance, so that their results are
+                    // read before they are scrolled into view.
+                    HorizontalPager(
+                        state = pagerState,
                         modifier = Modifier.fillMaxSize().padding(padding),
-                        contentPadding = PaddingValues(bottom = 88.dp),
-                    ) {
-                        items(today.rows, key = { it.game.id }) { row ->
-                            GameRow(
-                                row = row,
-                                onToday = today.day == today.today,
-                                onTap = {
-                                    row.siteUrl?.let {
-                                        CustomTabLauncher.launch(context, it, toolbarColor)
-                                    }
-                                    onOpenGame(row.game.id, today.day)
-                                },
-                                onDetails = { onOpenGame(row.game.id, today.day) },
-                            )
+                        beyondViewportPageCount = 1,
+                        key = pages::key,
+                    ) { page ->
+                        val day = pages.dayOf(page)
+                        val listState = rememberLazyListState()
+                        DisposableEffect(day, listState) {
+                            listStates[day] = listState
+                            onDispose { listStates.remove(day) }
                         }
+                        DayList(
+                            state = viewModel.stateOn(day).collectAsStateWithLifecycle().value,
+                            listState = listState,
+                            onOpenGame = onOpenGame,
+                        )
                     }
                 }
             }
         }
     }
+}
+
+/** The rows for the date of [state]. Empty until [state] is loaded. */
+@Composable
+private fun DayList(
+    state: TodayState?,
+    listState: LazyListState,
+    onOpenGame: (gameId: Long, day: LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
+    LazyColumn(
+        state = listState,
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 88.dp),
+    ) {
+        if (state != null) {
+            items(state.rows, key = { it.game.id }) { row ->
+                GameRow(
+                    row = row,
+                    onToday = state.day == state.today,
+                    onTap = {
+                        row.siteUrl?.let {
+                            CustomTabLauncher.launch(context, it, toolbarColor)
+                        }
+                        onOpenGame(row.game.id, state.day)
+                    },
+                    onDetails = { onOpenGame(row.game.id, state.day) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The scroll position as a date: the days since the epoch of the current page, with the fraction
+ * of a page scrolled. Null when the current page isn't laid out.
+ */
+private fun PagerState.position(): Double? = dayAt(currentPage)?.let { it.toEpochDay() + currentPageOffsetFraction.toDouble() }
+
+/**
+ * The animated [tileCoverage] of the backdrop. Between two pages, it is blended from the coverage
+ * of each page by how far the pager is from one to the other.
+ *
+ * @param listStates The state of the list on each composed page, by date.
+ * @param listTop The distance from the top of the backdrop to the top of the lists.
+ * @param height The height of the backdrop.
+ */
+@Composable
+private fun rememberTileCoverage(
+    pagerState: PagerState?,
+    listStates: Map<LocalDate, LazyListState>,
+    frame: TodayFrame?,
+    listTop: Float,
+    height: Float,
+): State<Float> {
+    val coverage = remember { Animatable(0f) }
+    val currentFrame by rememberUpdatedState(frame)
+    val currentListTop by rememberUpdatedState(listTop)
+    val currentHeight by rememberUpdatedState(height)
+    LaunchedEffect(pagerState) {
+        if (pagerState == null) return@LaunchedEffect
+
+        // A page with no rows yet is skipped, because its list is not its final length.
+        fun coverageOf(page: Int): Float? {
+            val list = pagerState.dayAt(page)?.let { listStates[it] } ?: return null
+            if (list.layoutInfo.totalItemsCount == 0) return null
+            return tileCoverage(currentListTop + list.contentBottom(), currentHeight)
+        }
+
+        // The first value is shown without an animation.
+        var animate = false
+        snapshotFlow {
+            val frame = currentFrame
+            when {
+                frame == null || currentHeight <= 0f -> {
+                    null
+                }
+
+                !frame.gamesTracked -> {
+                    0f
+                }
+
+                else -> {
+                    val position = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                    val page = floor(position).toInt()
+                    val start = coverageOf(page)
+                    val end = coverageOf(page + 1)
+                    if (start != null && end != null) lerp(start, end, position - page) else start ?: end
+                }
+            }
+        }.filterNotNull()
+            .collectLatest { target ->
+                if (animate) {
+                    coverage.animateTo(target)
+                } else {
+                    coverage.snapTo(target)
+                    animate = true
+                }
+            }
+    }
+    return coverage.asState()
 }
 
 /**
@@ -258,7 +402,9 @@ private fun dayLabelWidth(
 @Composable
 private fun DayTitle(
     state: TodayState,
-    onStep: (Long) -> Unit,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onStep: (Int) -> Unit,
     onPickDay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -290,7 +436,7 @@ private fun DayTitle(
         // Moved so that its centre lines up with the status circles of the games.
         IconButton(
             onClick = { onStep(-1) },
-            enabled = state.canGoBack,
+            enabled = canGoBack,
             modifier = Modifier.offset(x = (-2).dp),
         ) {
             Icon(
@@ -328,7 +474,7 @@ private fun DayTitle(
                 )
             }
         }
-        IconButton(onClick = { onStep(1) }, enabled = state.canGoForward) {
+        IconButton(onClick = { onStep(1) }, enabled = canGoForward) {
             Icon(
                 painterResource(R.drawable.ic_chevron_right),
                 stringResource(R.string.detail_day_next),

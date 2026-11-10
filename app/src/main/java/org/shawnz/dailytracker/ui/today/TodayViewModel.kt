@@ -3,18 +3,20 @@ package org.shawnz.dailytracker.ui.today
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.job
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.PuzzleStatus
@@ -41,26 +43,35 @@ data class GameRowState(
 /**
  * The games' puzzles for one date.
  *
- * @property day The date shown.
+ * @property day The date of the page.
+ * @property today The device's date.
+ */
+data class TodayState(
+    val day: LocalDate,
+    val today: LocalDate,
+    val rows: List<GameRowState>,
+) {
+    val doneCount: Int get() = rows.count { it.status is PuzzleStatus.Done }
+}
+
+/**
+ * The dates that the Today screen can show, and the selected one.
+ *
+ * @property day The selected date.
  * @property today The device's date.
  * @property earliestDay The earliest date that can be shown: the earliest of [today], the earliest
  *   puzzle day with a result, and the earliest possible puzzle day of any game.
  * @property latestDay The latest date that can be shown: the latest possible puzzle day of any
  *   game, or [today] if that is later.
+ * @property gamesTracked Whether any game is tracked.
  */
-data class TodayState(
+data class TodayFrame(
     val day: LocalDate,
     val today: LocalDate,
     val earliestDay: LocalDate,
     val latestDay: LocalDate,
-    val rows: List<GameRowState>,
-) {
-    val doneCount: Int get() = rows.count { it.status is PuzzleStatus.Done }
-
-    val canGoBack: Boolean get() = day > earliestDay
-
-    val canGoForward: Boolean get() = day < latestDay
-}
+    val gamesTracked: Boolean,
+)
 
 @HiltViewModel
 class TodayViewModel
@@ -92,20 +103,10 @@ class TodayViewModel
                     }
                 }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), replay = 1)
 
-        /** The results for the page's day, with that day. Queried again only when the day changes. */
-        @OptIn(ExperimentalCoroutinesApi::class)
-        private val dayEntries: Flow<Pair<LocalDate, List<EntryEntity>>> =
+        /** Null until loaded. */
+        val frame: StateFlow<TodayFrame?> =
             pages
-                .map { it.day }
-                .distinctUntilChanged()
-                .flatMapLatest { day -> repo.observeEntriesOn(day).map { day to it } }
-
-        /** Null until loaded. There are no rows when no games are tracked. */
-        val state: StateFlow<TodayState?> =
-            combine(pages, dayEntries) { page, (day, entries) ->
-                // A new day's page is held back until the results for that day are read.
-                if (page.day == day) page.state(entries) else null
-            }.filterNotNull()
+                .map { it.frame() }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
         /** Every puzzle day with a result. */
@@ -122,11 +123,52 @@ class TodayViewModel
             chosenDay.value = day.takeIf { it != LocalDate.now() }
         }
 
-        fun stepDay(days: Long) {
-            val day = state.value?.day ?: return
-            selectDay(day.plusDays(days))
-        }
+        /** A flow from [stateOn], and the scope that it is shared in. */
+        private class DayState(
+            val scope: CoroutineScope,
+            val flow: StateFlow<TodayState?>,
+        )
+
+        /**
+         * The flows from [stateOn], in order from the least recently used. When there are more than
+         * [DAY_STATES_KEPT], the oldest is removed and its scope is cancelled.
+         */
+        private val dayStates =
+            object : LinkedHashMap<LocalDate, DayState>(DAY_STATES_KEPT, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<LocalDate, DayState>): Boolean {
+                    if (size <= DAY_STATES_KEPT) return false
+                    eldest.value.scope.cancel()
+                    return true
+                }
+            }
+
+        /**
+         * The state for [day], independent of the selected date. Null until loaded. It is null
+         * again after [STOP_TIMEOUT_MILLIS] with no collector, so that an out-of-date value isn't
+         * shown. One flow is kept for each recent date, so every collector of a date has the same
+         * value.
+         */
+        fun stateOn(day: LocalDate): StateFlow<TodayState?> =
+            dayStates
+                .getOrPut(day) {
+                    val parent = viewModelScope.coroutineContext
+                    val scope = CoroutineScope(parent + Job(parent.job))
+                    val flow =
+                        combine(pages, repo.observeEntriesOn(day)) { page, entries -> page.copy(day = day).state(entries) }
+                            .stateIn(
+                                scope,
+                                SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS, replayExpirationMillis = 0),
+                                null,
+                            )
+                    DayState(scope, flow)
+                }.flow
     }
+
+/**
+ * The number of dates whose [TodayViewModel.stateOn] flows are kept. It is more than the number of
+ * pages that are composed at once, so the flows in use are never the least recently used.
+ */
+internal const val DAY_STATES_KEPT = 16
 
 internal data class Inputs(
     val games: List<Game>,
@@ -150,7 +192,7 @@ internal data class Inputs(
     }
 }
 
-/** The inputs of [TodayState] other than the results for [day]. */
+/** The inputs of [TodayFrame], and of [TodayState] other than the results for [day]. */
 internal data class Page(
     val games: List<Game>,
     val recent: List<EntryEntity>,
@@ -159,13 +201,13 @@ internal data class Page(
     val earliest: LocalDate,
     val latest: LocalDate,
 ) {
+    fun frame(): TodayFrame = TodayFrame(day, now.toLocalDate(), earliest, latest, gamesTracked = games.isNotEmpty())
+
     fun state(dayEntries: List<EntryEntity>): TodayState {
         val entries = recent + dayEntries
         return TodayState(
             day = day,
             today = now.toLocalDate(),
-            earliestDay = earliest,
-            latestDay = latest,
             rows =
                 games.map { game ->
                     val status = game.statusOn(day, entries, now)
