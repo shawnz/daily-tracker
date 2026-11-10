@@ -1,7 +1,10 @@
 package org.shawnz.dailytracker.share
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
@@ -58,6 +61,7 @@ class ReceiveShareActivity : ComponentActivity() {
                 // which case that may be all that's available.
                 match == null && isGameUrl(text, games.filter { it.parser != null }) -> {
                     toast(getString(R.string.share_link_only))
+                    buzz()
                 }
 
                 // No task flags, so the dialog opens in this activity's task. Closing the dialog
@@ -88,6 +92,14 @@ class ReceiveShareActivity : ComponentActivity() {
     ): Game? = games.singleOrNull { it.parser?.matches(text) == true }
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+
+    /** Vibrates twice, on API 29 and up, to draw attention to a warning toast. */
+    private fun buzz() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getSystemService(Vibrator::class.java)
+                ?.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_DOUBLE_CLICK))
+        }
+    }
 }
 
 /** Whether [text] only contains a link to one of [games]. */
