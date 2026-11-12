@@ -7,6 +7,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,10 +23,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
@@ -323,11 +325,17 @@ internal fun HiddenGameNote(
         } else {
             stringResource(R.string.custom_game_match_hidden_by, game.title, publisher)
         }
-    Text(
-        // The sparkles are decoration. A screen reader is given the sentence on its own.
-        text = "✨ $message ✨",
-        modifier = modifier.semantics { contentDescription = message },
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.primary,
-    )
+    // The sparkles are beside the text, so the text wraps between them. They are decoration, so a
+    // screen reader is given the sentence on its own.
+    val style = MaterialTheme.typography.bodySmall
+    val color = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("✨", modifier = Modifier.clearAndSetSemantics {}, style = style)
+        Text(message, modifier = Modifier.weight(1f, fill = false), style = style, color = color)
+        Text("✨", modifier = Modifier.clearAndSetSemantics {}, style = style)
+    }
 }
