@@ -225,7 +225,6 @@ internal fun GameDetailScreen(
             item(key = "day") {
                 DayCard(
                     modifier = Modifier.padding(top = 16.dp),
-                    game = game,
                     state = state,
                     draft = draft,
                     editing = editing,
@@ -367,7 +366,6 @@ private fun GameHeader(
  */
 @Composable
 private fun DayCard(
-    game: Game,
     state: DetailState,
     draft: String,
     editing: Boolean,
