@@ -397,12 +397,14 @@ private fun DayCard(
     val day = shownDay ?: selected
 
     Card(modifier) {
+        // The top and bottom padding are 2dp more than at the sides, because the arrow glyphs are
+        // narrower than their icons. The visible space is then the same on every side.
         DayStepper(
             label = if (day == state.currentDeviceDay) stringResource(R.string.detail_today) else day.dayLabel(),
             canGoForward = day < last,
             onStep = { scope.launch { pagerState.animateScrollByPages(it) } },
             onPickDay = onPickDay,
-            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+            modifier = Modifier.padding(start = 16.dp, top = 18.dp, end = 16.dp),
         )
         // Each page has its own padding, so that its content slides up to the edges of the card.
         // A drag in the text field doesn't move to another day, because swiping is off while
@@ -429,7 +431,7 @@ private fun DayCard(
                 onSave = onSave,
                 onShare = { onShare(card) },
                 onDelete = onDelete,
-                modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp),
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 18.dp),
             )
         }
     }
@@ -568,12 +570,11 @@ private fun NoEntry(
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // The day stepper above has about 12dp of touch target under its arrows and date, and the
-    // buttons have 4dp. The padding above is 8dp less, so the visible space is the same.
+    // The same visible space between the lines as at the card's edges.
     Column(
-        modifier = modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp),
+        modifier = modifier.fillMaxWidth().padding(top = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
             stringResource(R.string.today_not_played),
