@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import org.shawnz.dailytracker.data.CustomGame
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
@@ -102,7 +103,11 @@ class FakeRepository(
     override suspend fun addCustom(
         title: String,
         url: String,
-    ): Long = nextId++
+    ): Long {
+        val game = testGame(id = nextId++, source = CustomGame(title.trim(), url.trim()))
+        games.value += game
+        return game.id
+    }
 
     override suspend fun deleteGame(game: Game) {
         games.value = games.value.filterNot { it.id == game.id }

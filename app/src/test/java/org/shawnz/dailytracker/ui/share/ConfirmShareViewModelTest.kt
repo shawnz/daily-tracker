@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.shawnz.dailytracker.data.CustomGame
 import org.shawnz.dailytracker.data.EntryEntity
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.share.ConfirmShareActivity
@@ -257,5 +258,46 @@ class ConfirmShareViewModelTest {
             vm.save(ShareTarget.Tracked(archived), today).join()
 
             assertFalse(repo.games.value.single { it.id == wordle.id }.archived)
+        }
+
+    private val custom = ShareTarget.New(CustomGame("Alpha", "https://alpha.example"))
+
+    @Test
+    fun `a new user-made game is listed and chosen without being added`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(wordle))
+            val vm = viewModel(repo, matched = null)
+
+            vm.pickTarget(custom)
+
+            val state = vm.state.first { it.target != null }
+            assertEquals(listOf(ShareTarget.Tracked(wordle), custom), state.targets)
+            assertEquals(today, state.day)
+            assertEquals(listOf(wordle), repo.games.value)
+        }
+
+    @Test
+    fun `saving to a new user-made game adds it`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(wordle))
+            val vm = viewModel(repo, matched = null)
+
+            vm.save(custom, today).join()
+
+            val added = repo.games.value.single { it.source == custom.source }
+            assertEquals(added.id, repo.entries.value.single().gameId)
+        }
+
+    @Test
+    fun `a picked game that is already listed is listed once`() =
+        runTest(dispatcher) {
+            val vm = viewModel(FakeRepository(games = listOf(other)))
+
+            val new = ShareTarget.New(CatalogGame.WORDLE)
+
+            vm.pickTarget(new)
+
+            val state = vm.state.first { it.target != null }
+            assertEquals(listOf(ShareTarget.Tracked(other), new), state.targets)
         }
 }

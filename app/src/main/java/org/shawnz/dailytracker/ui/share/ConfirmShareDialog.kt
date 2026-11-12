@@ -16,22 +16,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.shawnz.dailytracker.R
+import org.shawnz.dailytracker.data.CustomGame
+import org.shawnz.dailytracker.data.UrlMatch
+import org.shawnz.dailytracker.data.matchUrl
+import org.shawnz.dailytracker.ui.add.CustomGameFields
+import org.shawnz.dailytracker.ui.add.rememberCustomGameFormState
 import org.shawnz.dailytracker.ui.DayPickerContent
 import org.shawnz.dailytracker.ui.dayLabel
 import org.shawnz.dailytracker.ui.games.RawShareText
 import java.time.LocalDate
 
-private enum class Pane { Form, Game, Day }
+private enum class Pane { Form, Game, Day, NewGame }
 
 /**
  * Selects the game and day for a shared result. The game and day in the text are selected first.
@@ -50,8 +57,7 @@ fun ConfirmShareDialog(
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     LaunchedEffect(saved) { if (saved) onDone() }
 
-    // Nothing is drawn until the games have loaded. [ReceiveShareActivity] only opens this when
-    // there are active games or a matched game, so the list will never be empty.
+    // Nothing is drawn until the games have loaded.
     val available = state.targets ?: return
 
     var pane by rememberSaveable {
@@ -60,9 +66,25 @@ fun ConfirmShareDialog(
     val game = state.target
     val day = state.day
 
+    val form = rememberCustomGameFormState()
+    val match = remember(form.url, state.allGames) { matchUrl(form.url, state.allGames) }
+    val pickNewGame = {
+        if (form.validate(match)) {
+            viewModel.pickTarget(
+                when (match) {
+                    null -> ShareTarget.New(CustomGame(form.title.trim(), form.url.trim()))
+                    is UrlMatch.Tracked -> ShareTarget.Tracked(match.game)
+                    is UrlMatch.Archived -> ShareTarget.Tracked(match.game)
+                    is UrlMatch.Known -> ShareTarget.New(match.catalogGame)
+                },
+            )
+            pane = Pane.Form
+        }
+    }
+
     // The form and day panes are specific to a game and day, so draw nothing until both are
     // selected.
-    if (pane != Pane.Game && (game == null || day == null)) return
+    if ((pane == Pane.Form || pane == Pane.Day) && (game == null || day == null)) return
 
     AlertDialog(
         onDismissRequest = onDone,
@@ -73,6 +95,7 @@ fun ConfirmShareDialog(
                         Pane.Form -> R.string.share_save_result
                         Pane.Game -> R.string.share_pick_game
                         Pane.Day -> R.string.detail_pick_day
+                        Pane.NewGame -> R.string.custom_game_title
                     },
                 ),
             )
@@ -87,7 +110,12 @@ fun ConfirmShareDialog(
                             viewModel.pickTarget(it)
                             pane = Pane.Form
                         },
+                        onNewGame = { pane = Pane.NewGame },
                     )
+                }
+
+                Pane.NewGame -> {
+                    CustomGameFields(state = form, match = match, onDone = pickNewGame)
                 }
 
                 Pane.Day -> {
@@ -144,6 +172,14 @@ fun ConfirmShareDialog(
                 }
 
                 Pane.Game -> {}
+
+                // Enabled for an unusable link, so pressing it can validate the link and show the
+                // error.
+                Pane.NewGame -> {
+                    TextButton(onClick = pickNewGame, enabled = form.ready(match)) {
+                        Text(stringResource(R.string.action_ok))
+                    }
+                }
             }
         },
         dismissButton = {
@@ -154,6 +190,8 @@ fun ConfirmShareDialog(
 
                 // The form needs a game, so there is nothing to go back to until one is picked.
                 Pane.Game -> if (game != null) BackButton(onClick = { pane = Pane.Form })
+
+                Pane.NewGame -> BackButton(onClick = { pane = Pane.Game })
             }
         },
     )
@@ -214,13 +252,14 @@ private fun FormPane(
 
 /**
  * The games a result can be saved to, with a preview of the shared text, since this pane is
- * shown first when no game was matched.
+ * shown first when no game was matched. The last row opens the form for a new game.
  */
 @Composable
 private fun GameListPane(
     sharedText: String,
     games: List<ShareTarget>,
     onPick: (ShareTarget) -> Unit,
+    onNewGame: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -234,20 +273,27 @@ private fun GameListPane(
                     .verticalScroll(rememberScrollState()),
         ) {
             games.forEach { game ->
-                GameRow(game = game, onClick = { onPick(game) })
+                GameRow(title = game.title, onClick = { onPick(game) })
             }
+            GameRow(
+                title = stringResource(R.string.custom_game_title),
+                onClick = onNewGame,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
 
 @Composable
 private fun GameRow(
-    game: ShareTarget,
+    title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
 ) {
     Text(
-        game.title,
+        title,
+        color = color,
         style = MaterialTheme.typography.bodyLarge,
         modifier =
             modifier

@@ -62,7 +62,7 @@ enum class CatalogGame(
     val parser: ResultParser<*>? = null,
     val numbering: DailyNumbering? = null,
     val puzzlePage: PuzzlePage? = null,
-    val rolloverRule: RolloverRule,
+    override val rolloverRule: RolloverRule,
 ) : GameSource {
     WORDLE(
         title = "Wordle",

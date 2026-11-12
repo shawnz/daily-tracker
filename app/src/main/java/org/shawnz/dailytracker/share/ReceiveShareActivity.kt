@@ -45,10 +45,6 @@ class ReceiveShareActivity : ComponentActivity() {
             val existing = if (tracked != null && day != null) repo.entryFor(tracked, day) else null
 
             when {
-                match == null && repo.activeGames().isEmpty() -> {
-                    toast(getString(R.string.share_no_games))
-                }
-
                 match != null && day != null && existing == null -> {
                     repo.record(repo.activate(match), text, day)
                     toast(getString(R.string.share_saved_to, match.title))

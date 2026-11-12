@@ -11,13 +11,16 @@ import java.time.ZonedDateTime
 interface GameSource {
     val title: String
     val url: String
+    val rolloverRule: RolloverRule
 }
 
 /** A game the user typed in. */
 data class CustomGame(
     override val title: String,
     override val url: String,
-) : GameSource
+) : GameSource {
+    override val rolloverRule: RolloverRule get() = RolloverRule.DEFAULT
+}
 
 /** One tracked game, with its details from [source]. */
 data class Game(
@@ -39,7 +42,7 @@ data class Game(
     /** Null when no parser exists for this game. */
     val parser: ResultParser<*>? get() = catalogGame?.parser
 
-    val rolloverRule: RolloverRule get() = catalogGame?.rolloverRule ?: RolloverRule.DEFAULT
+    val rolloverRule: RolloverRule get() = source.rolloverRule
 
     /**
      * Returns the address to open to play the puzzle for [day], given its [status] and the game's
