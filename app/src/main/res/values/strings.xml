@@ -37,9 +37,12 @@
     <string name="custom_game_save">Add game</string>
     <string name="custom_game_match_tracked">Already on your list as %1$s.</string>
     <string name="custom_game_match_archived">%1$s is archived. Restoring keeps its history.</string>
-    <string name="custom_game_match_known">%1$s is in the catalog.</string>
-    <string name="custom_game_match_hidden">You\'ve discovered a hidden game, %1$s</string>
-    <string name="custom_game_match_hidden_by">You\'ve discovered a hidden game, %1$s by %2$s</string>
+    <string name="custom_game_match_known">That\'s the link for %1$s.</string>
+    <string name="custom_game_match_known_by">That\'s the link for %1$s by %2$s.</string>
+    <string name="custom_game_match_hidden">Hidden game found: %1$s</string>
+    <string name="custom_game_match_hidden_by">Hidden game found: %1$s by %2$s</string>
+    <string name="custom_game_suggest">Did you mean %1$s?</string>
+    <string name="custom_game_suggest_by">Did you mean %1$s by %2$s?</string>
     <string name="custom_game_restore">Restore %1$s</string>
     <string name="custom_game_add_known">Add %1$s</string>
     <string name="custom_game_back_to_today">Back to Today</string>

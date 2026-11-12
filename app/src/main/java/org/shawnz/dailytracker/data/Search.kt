@@ -33,6 +33,16 @@ fun searchCatalog(
 }
 
 /**
+ * Returns the catalog game whose title has the same [searchFold] as [title], or null when there is
+ * none.
+ */
+fun catalogGameTitled(title: String): CatalogGame? {
+    val key = searchFold(title)
+    if (key.isEmpty()) return null
+    return CatalogGame.entries.firstOrNull { searchFold(it.title) == key }
+}
+
+/**
  * The games in [games] whose title or publisher contains [query], or all of them when [query] is
  * blank.
  */

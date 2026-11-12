@@ -32,6 +32,18 @@ class SearchTest {
     }
 
     @Test
+    fun `a title is matched to a catalog game in the same way as a search query`() {
+        assertEquals(CatalogGame.FOUR_BY_SIX, catalogGameTitled("4x6"))
+        assertEquals(CatalogGame.CLUES_BY_SAM, catalogGameTitled("clues by sam"))
+    }
+
+    @Test
+    fun `part of a title is not matched to a catalog game`() {
+        assertEquals(null, catalogGameTitled("Word"))
+        assertEquals(null, catalogGameTitled(""))
+    }
+
+    @Test
     fun `accents are not compared`() {
         assertEquals("cafe", searchFold("Café"))
     }
