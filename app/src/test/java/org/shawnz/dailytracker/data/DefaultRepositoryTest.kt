@@ -72,6 +72,45 @@ class DefaultRepositoryTest {
         }
     }
 
+    @Test
+    fun `activating a game that is not tracked adds it at the end`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+
+            val game = repo.activate(CatalogGame.CONNECTIONS)
+
+            assertEquals(CatalogGame.CONNECTIONS, game.catalogGame)
+            assertEquals(listOf(game), repo.activeGames().drop(1))
+        }
+    }
+
+    @Test
+    fun `activating an archived game restores it with its entries`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val archived = repo.activeGames().single()
+            repo.record(archived, solvedInFour, puzzleDay)
+            repo.setArchived(archived, true)
+
+            val game = repo.activate(CatalogGame.WORDLE)
+
+            assertEquals(archived.id, game.id)
+            assertEquals(listOf(game), repo.activeGames())
+            assertEquals(1, repo.observeEntries(game.id).first().size)
+        }
+    }
+
+    @Test
+    fun `activating an active game leaves it as it is`() {
+        runBlocking {
+            repo.addFromCatalog(CatalogGame.WORDLE)
+            val active = repo.activeGames().single()
+
+            assertEquals(active, repo.activate(CatalogGame.WORDLE))
+            assertEquals(listOf(active), repo.activeGames())
+        }
+    }
+
     // Puzzle 1,234, VINYL.
     private val puzzleDay = LocalDate.of(2024, 11, 4)
     private val solvedInFour = "Wordle 1,234 4/6\n\n⬛⬛⬛🟨⬛\n⬛🟨⬛⬛⬛\n⬛🟩🟩⬛🟨\n🟩🟩🟩🟩🟩"

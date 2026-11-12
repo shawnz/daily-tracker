@@ -5,19 +5,22 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import org.shawnz.dailytracker.data.EntryEntity
-import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
+import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.share.ConfirmShareActivity
 import org.shawnz.dailytracker.ui.STOP_TIMEOUT_MILLIS
 import java.time.LocalDate
@@ -26,13 +29,13 @@ import javax.inject.Inject
 /**
  * What a shared result is about to be saved as.
  *
- * @property games The tracked games to choose from. Null until they have loaded.
+ * @property targets The games to choose from. Null until they have loaded.
  * @property day The puzzle day the result will be filed under. Null until a game is chosen.
  * @property entries The chosen game's entries, for the day picker and the replacement warning.
  */
 data class ConfirmShareState(
-    val games: List<Game>? = null,
-    val game: Game? = null,
+    val targets: List<ShareTarget>? = null,
+    val target: ShareTarget? = null,
     val day: LocalDate? = null,
     val entries: List<EntryEntity> = emptyList(),
     val possiblePuzzleDays: ClosedRange<LocalDate>? = null,
@@ -56,12 +59,36 @@ class ConfirmShareViewModel
         private val sharedText: String =
             savedStateHandle.get<String>(ConfirmShareActivity.EXTRA_SHARED_TEXT).orEmpty()
 
-        private val pickedGameId =
-            MutableStateFlow(
-                savedStateHandle
-                    .get<Long>(ConfirmShareActivity.EXTRA_MATCHED_GAME_ID)
-                    ?.takeIf { it != ConfirmShareActivity.NO_GAME },
-            )
+        private val matched: CatalogGame? =
+            savedStateHandle.get<String>(ConfirmShareActivity.EXTRA_MATCHED_GAME)?.let { name ->
+                CatalogGame.entries.firstOrNull { it.name == name }
+            }
+
+        /** The target for [matched]. A [ShareTarget.New] when that game is not tracked. */
+        private val matchedTarget: Flow<ShareTarget?> =
+            if (matched == null) {
+                flowOf(null)
+            } else {
+                repo.observeAllGames().map { all ->
+                    all.firstOrNull { it.catalogGame == matched }?.let { ShareTarget.Tracked(it) }
+                        ?: ShareTarget.New(matched)
+                }
+            }
+
+        /** The active games, then [matchedTarget] when it is not active. */
+        private val targets: Flow<List<ShareTarget>> =
+            combine(repo.observeActiveGames(), matchedTarget) { active, matched ->
+                val tracked = active.map { ShareTarget.Tracked(it) }
+                val matchedActive = matched is ShareTarget.Tracked && !matched.game.archived
+                if (matched == null || matchedActive) tracked else tracked + matched
+            }
+
+        /** The target the user picked, or null if the user hasn't picked one. */
+        private val picked = MutableStateFlow<ShareTarget?>(null)
+
+        /** The picked target, or [matchedTarget] until one is picked. */
+        private val target: Flow<ShareTarget?> =
+            combine(matchedTarget, picked) { matched, picked -> picked ?: matched }
 
         /**
          * The day the user picked, or null if the user hasn't picked one. Until then, the day of
@@ -72,7 +99,7 @@ class ConfirmShareViewModel
 
         @OptIn(ExperimentalCoroutinesApi::class)
         private val entries =
-            pickedGameId.flatMapLatest { id ->
+            target.map { (it as? ShareTarget.Tracked)?.game?.id }.distinctUntilChanged().flatMapLatest { id ->
                 if (id == null) flowOf(emptyList()) else repo.observeEntries(id)
             }
 
@@ -84,18 +111,22 @@ class ConfirmShareViewModel
 
         val state: StateFlow<ConfirmShareState> =
             combine(
-                repo.observeActiveGames(),
-                pickedGameId,
+                targets,
+                target,
                 chosenDay,
                 entries,
-            ) { games, id, chosen, rows ->
-                val game = games.firstOrNull { it.id == id }
-                val possible = game?.possiblePuzzleDays(rows)
+            ) { targets, target, chosen, rows ->
+                val possible =
+                    when (target) {
+                        null -> null
+                        is ShareTarget.Tracked -> target.game.possiblePuzzleDays(rows)
+                        is ShareTarget.New -> target.catalogGame.rolloverRule.possiblePuzzleDays()
+                    }
                 ConfirmShareState(
-                    games = games,
-                    game = game,
+                    targets = targets,
+                    target = target,
                     day =
-                        chosen ?: possible?.let { game.catalogGame?.dayIn(sharedText) ?: it.start },
+                        chosen ?: possible?.let { target?.catalogGame?.dayIn(sharedText) ?: it.start },
                     entries = rows,
                     possiblePuzzleDays = possible,
                 )
@@ -106,8 +137,8 @@ class ConfirmShareViewModel
                     ConfirmShareState(),
                 )
 
-        fun pickGame(game: Game) {
-            pickedGameId.value = game.id
+        fun pickTarget(target: ShareTarget) {
+            picked.value = target
             chosenDay.value = null
         }
 
@@ -121,11 +152,22 @@ class ConfirmShareViewModel
         val saved: StateFlow<Boolean> = _saved.asStateFlow()
 
         fun save(
-            game: Game,
+            target: ShareTarget,
             day: LocalDate,
         ) = viewModelScope.launch {
             if (frozen) return@launch
             frozen = true
+            val game =
+                when (target) {
+                    is ShareTarget.Tracked -> {
+                        if (target.game.archived) repo.setArchived(target.game, false)
+                        target.game
+                    }
+
+                    is ShareTarget.New -> {
+                        repo.activate(target.catalogGame)
+                    }
+                }
             repo.record(game, sharedText, day)
             _saved.value = true
         }

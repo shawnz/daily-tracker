@@ -5,11 +5,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.testdoubles.raddleText
-import org.shawnz.dailytracker.testdoubles.testGame
 import java.time.LocalDate
 
 class IsGameUrlTest {
-    private val games = listOf(testGame(id = 1, source = CatalogGame.RADDLE))
+    private val games = listOf(CatalogGame.RADDLE)
 
     // The url field Raddle passes to navigator.share, which Firefox shares alone (bug 2077771).
     @Test

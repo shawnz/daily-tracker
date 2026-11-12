@@ -85,9 +85,19 @@ class FakeRepository(
 
     override suspend fun getGame(id: Long): Game? = games.value.firstOrNull { it.id == id }
 
+    override suspend fun findGame(catalog: CatalogGame): Game? = games.value.firstOrNull { it.catalogGame == catalog }
+
     override suspend fun activeGames(): List<Game> = games.value.filterNot { it.archived }
 
     override suspend fun addFromCatalog(catalog: CatalogGame): Long = nextId++
+
+    override suspend fun activate(catalog: CatalogGame): Game {
+        val game =
+            games.value.firstOrNull { it.catalogGame == catalog }?.copy(archived = false)
+                ?: testGame(id = nextId++, source = catalog)
+        games.value = games.value.filterNot { it.id == game.id } + game
+        return game
+    }
 
     override suspend fun addCustom(
         title: String,

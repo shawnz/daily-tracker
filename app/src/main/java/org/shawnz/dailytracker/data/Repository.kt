@@ -38,9 +38,21 @@ interface Repository {
 
     suspend fun getGame(id: Long): Game?
 
+    /**
+     * Returns the tracked game for [catalog], or null when there is none. An archived game is
+     * included.
+     */
+    suspend fun findGame(catalog: CatalogGame): Game?
+
     suspend fun activeGames(): List<Game>
 
     suspend fun addFromCatalog(catalog: CatalogGame): Long
+
+    /**
+     * Returns the active game for [catalog]. The game is restored when it is archived, and added
+     * when it is not tracked.
+     */
+    suspend fun activate(catalog: CatalogGame): Game
 
     suspend fun addCustom(
         title: String,
@@ -145,6 +157,8 @@ class DefaultRepository
 
         override suspend fun getGame(id: Long): Game? = gameDao.getById(id)?.resolve()
 
+        override suspend fun findGame(catalog: CatalogGame): Game? = gameDao.findCatalog(catalog)?.resolve()
+
         override suspend fun activeGames(): List<Game> =
             gameDao
                 .getActive()
@@ -156,6 +170,26 @@ class DefaultRepository
             gameDao.insert(
                 catalog.toEntity(gameDao.maxSortOrder() + 1),
             )
+
+        override suspend fun activate(catalog: CatalogGame): Game =
+            database.withWriteTransaction {
+                val row = gameDao.findCatalog(catalog)
+                when {
+                    row == null -> {
+                        val id = gameDao.insert(catalog.toEntity(gameDao.maxSortOrder() + 1))
+                        checkNotNull(gameDao.getById(id))
+                    }
+
+                    row.archived -> {
+                        gameDao.setArchived(row.id, false)
+                        row.copy(archived = false)
+                    }
+
+                    else -> {
+                        row
+                    }
+                }.resolve()
+            }
 
         override suspend fun addCustom(
             title: String,

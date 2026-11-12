@@ -10,14 +10,16 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.shawnz.dailytracker.R
-import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.data.Repository
+import org.shawnz.dailytracker.data.catalog.CatalogGame
 import org.shawnz.dailytracker.data.urlMatches
 import javax.inject.Inject
 
 /**
  * Saves a shared result, or opens [ConfirmShareActivity] when the text is ambiguous or would
  * replace a different result. Text that is already saved for its game and day is not saved again.
+ * Before a result is saved, a game that is archived is restored, and a game that is not tracked
+ * is added.
  *
  * Its window is transparent, so the app the text was shared from stays visible and keeps its
  * position.
@@ -37,18 +39,18 @@ class ReceiveShareActivity : ComponentActivity() {
         }
 
         lifecycleScope.launch {
-            val games = repo.activeGames()
-            val match = attribute(text, games)
-            val day = match?.catalogGame?.dayIn(text)
-            val existing = if (match != null && day != null) repo.entryFor(match, day) else null
+            val match = attribute(text)
+            val tracked = match?.let { repo.findGame(it) }
+            val day = match?.dayIn(text)
+            val existing = if (tracked != null && day != null) repo.entryFor(tracked, day) else null
 
             when {
-                games.isEmpty() -> {
+                match == null && repo.activeGames().isEmpty() -> {
                     toast(getString(R.string.share_no_games))
                 }
 
                 match != null && day != null && existing == null -> {
-                    repo.record(match, text, day)
+                    repo.record(repo.activate(match), text, day)
                     toast(getString(R.string.share_saved_to, match.title))
                 }
 
@@ -58,7 +60,7 @@ class ReceiveShareActivity : ComponentActivity() {
 
                 // Warns when only the page URL was shared, unless it's a game without a parser, in
                 // which case that may be all that's available.
-                match == null && isGameUrl(text, games.filter { it.parser != null }) -> {
+                match == null && isGameUrl(text, CatalogGame.entries.filter { it.parser != null }) -> {
                     toast(getString(R.string.share_link_only))
                     buzz()
                 }
@@ -71,7 +73,7 @@ class ReceiveShareActivity : ComponentActivity() {
                             .putExtra(ConfirmShareActivity.EXTRA_SHARED_TEXT, text)
                             .apply {
                                 if (match != null) {
-                                    putExtra(ConfirmShareActivity.EXTRA_MATCHED_GAME_ID, match.id)
+                                    putExtra(ConfirmShareActivity.EXTRA_MATCHED_GAME, match.name)
                                 }
                             },
                     )
@@ -82,13 +84,11 @@ class ReceiveShareActivity : ComponentActivity() {
     }
 
     /**
-     * The game in [games] whose parser matches [text], or null when no game matches or two or
-     * more do.
+     * Returns the catalog game whose parser matches [text], or null when [text] doesn't match
+     * exactly one parser.
      */
-    private fun attribute(
-        text: String,
-        games: List<Game>,
-    ): Game? = games.singleOrNull { it.parser?.matches(text) == true }
+    private fun attribute(text: String): CatalogGame? =
+        CatalogGame.entries.singleOrNull { it.parser?.matches(text) == true }
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
@@ -107,5 +107,5 @@ class ReceiveShareActivity : ComponentActivity() {
 /** Whether [text] only contains a link to one of [games]. */
 internal fun isGameUrl(
     text: String,
-    games: List<Game>,
+    games: List<CatalogGame>,
 ): Boolean = games.any { game -> game.urls.any { urlMatches(it, text) } }

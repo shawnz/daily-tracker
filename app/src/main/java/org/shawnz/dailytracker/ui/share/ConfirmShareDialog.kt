@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.shawnz.dailytracker.R
-import org.shawnz.dailytracker.data.Game
 import org.shawnz.dailytracker.ui.DayPickerContent
 import org.shawnz.dailytracker.ui.dayLabel
 import org.shawnz.dailytracker.ui.games.RawShareText
@@ -34,11 +33,16 @@ import java.time.LocalDate
 
 private enum class Pane { Form, Game, Day }
 
-/** Selects the game and/or day for a shared result, starting from what the text states. */
+/**
+ * Selects the game and day for a shared result. The game and day in the text are selected first.
+ *
+ * @param matched Whether the shared text matches exactly one game's parser. When it doesn't, the
+ *   dialog opens at the game list.
+ */
 @Composable
 fun ConfirmShareDialog(
     sharedText: String,
-    matchedGameId: Long?,
+    matched: Boolean,
     onDone: () -> Unit,
     viewModel: ConfirmShareViewModel = hiltViewModel(),
 ) {
@@ -47,13 +51,13 @@ fun ConfirmShareDialog(
     LaunchedEffect(saved) { if (saved) onDone() }
 
     // Nothing is drawn until the games have loaded. [ReceiveShareActivity] only opens this when
-    // there are games, so the list will never be empty.
-    val available = state.games ?: return
+    // there are active games or a matched game, so the list will never be empty.
+    val available = state.targets ?: return
 
     var pane by rememberSaveable {
-        mutableStateOf(if (matchedGameId == null) Pane.Game else Pane.Form)
+        mutableStateOf(if (matched) Pane.Form else Pane.Game)
     }
-    val game = state.game
+    val game = state.target
     val day = state.day
 
     // The form and day panes are specific to a game and day, so draw nothing until both are
@@ -80,7 +84,7 @@ fun ConfirmShareDialog(
                         sharedText = sharedText,
                         games = available,
                         onPick = {
-                            viewModel.pickGame(it)
+                            viewModel.pickTarget(it)
                             pane = Pane.Form
                         },
                     )
@@ -172,7 +176,7 @@ private fun BackButton(
 @Composable
 private fun FormPane(
     sharedText: String,
-    game: Game,
+    game: ShareTarget,
     day: LocalDate,
     currentDeviceDay: LocalDate,
     clash: Boolean,
@@ -215,8 +219,8 @@ private fun FormPane(
 @Composable
 private fun GameListPane(
     sharedText: String,
-    games: List<Game>,
-    onPick: (Game) -> Unit,
+    games: List<ShareTarget>,
+    onPick: (ShareTarget) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -238,7 +242,7 @@ private fun GameListPane(
 
 @Composable
 private fun GameRow(
-    game: Game,
+    game: ShareTarget,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

@@ -35,22 +35,21 @@ class ConfirmShareViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private val wordle = testGame(id = 1)
-    private val other = testGame(id = 2)
+    private val other = testGame(id = 2, source = CatalogGame.CONNECTIONS)
     private val today = wordle.possiblePuzzleDays(entries = emptyList()).start
 
     private fun viewModel(
         repo: FakeRepository,
         sharedText: String = wordleText(today),
-        matchedGameId: Long? = wordle.id,
+        matched: CatalogGame? = CatalogGame.WORDLE,
     ) = ConfirmShareViewModel(
         repo = repo,
         savedStateHandle =
             SavedStateHandle(
-                mapOf(
-                    ConfirmShareActivity.EXTRA_SHARED_TEXT to sharedText,
-                    ConfirmShareActivity.EXTRA_MATCHED_GAME_ID
-                        to (matchedGameId ?: ConfirmShareActivity.NO_GAME),
-                ),
+                buildMap {
+                    put(ConfirmShareActivity.EXTRA_SHARED_TEXT, sharedText)
+                    if (matched != null) put(ConfirmShareActivity.EXTRA_MATCHED_GAME, matched.name)
+                },
             ),
     )
 
@@ -64,7 +63,7 @@ class ConfirmShareViewModelTest {
                     sharedText = wordleText(threeDaysBack),
                 )
 
-            val state = vm.state.first { it.game != null }
+            val state = vm.state.first { it.target != null }
 
             assertEquals(threeDaysBack, state.day)
         }
@@ -75,7 +74,7 @@ class ConfirmShareViewModelTest {
         runTest(dispatcher) {
             val vm = viewModel(FakeRepository(games = listOf(wordle)), sharedText = "nothing here")
 
-            val state = vm.state.first { it.game != null }
+            val state = vm.state.first { it.target != null }
 
             assertEquals(today, state.day)
         }
@@ -89,7 +88,7 @@ class ConfirmShareViewModelTest {
                     sharedText = wordleText(today.plusDays(5)),
                 )
 
-            val state = vm.state.first { it.game != null }
+            val state = vm.state.first { it.target != null }
 
             assertEquals(today, state.day)
         }
@@ -103,10 +102,10 @@ class ConfirmShareViewModelTest {
                 viewModel(
                     FakeRepository(games = listOf(raddle)),
                     sharedText = raddleText(last),
-                    matchedGameId = raddle.id,
+                    matched = CatalogGame.RADDLE,
                 )
 
-            val state = vm.state.first { it.game != null }
+            val state = vm.state.first { it.target != null }
 
             assertEquals(last, state.day)
         }
@@ -120,10 +119,10 @@ class ConfirmShareViewModelTest {
                 viewModel(
                     FakeRepository(games = listOf(raddle)),
                     sharedText = raddleText(raddle.possiblePuzzleDays(entries = emptyList()).endInclusive.plusDays(1)),
-                    matchedGameId = raddle.id,
+                    matched = CatalogGame.RADDLE,
                 )
 
-            val state = vm.state.first { it.game != null }
+            val state = vm.state.first { it.target != null }
 
             assertEquals(current, state.day)
         }
@@ -136,9 +135,9 @@ class ConfirmShareViewModelTest {
             vm.pickDay(today.minusDays(5))
             assertEquals(today.minusDays(5), vm.state.first { it.day != null }.day)
 
-            vm.pickGame(other)
+            vm.pickTarget(ShareTarget.Tracked(other))
 
-            assertEquals(today, vm.state.first { it.game?.id == other.id }.day)
+            assertEquals(today, vm.state.first { it.target == ShareTarget.Tracked(other) }.day)
         }
 
     @Test
@@ -147,7 +146,7 @@ class ConfirmShareViewModelTest {
             val existing = EntryEntity(id = 1, gameId = wordle.id, puzzleDay = today)
             val vm = viewModel(FakeRepository(games = listOf(wordle), entries = listOf(existing)))
 
-            val state = vm.state.first { it.game != null }
+            val state = vm.state.first { it.target != null }
 
             assertTrue(state.clash)
             assertEquals(setOf(today), state.playedDays)
@@ -158,7 +157,7 @@ class ConfirmShareViewModelTest {
         runTest(dispatcher) {
             val vm = viewModel(FakeRepository(games = listOf(wordle)))
 
-            val state = vm.state.first { it.game != null }
+            val state = vm.state.first { it.target != null }
 
             assertFalse(state.clash)
         }
@@ -171,9 +170,9 @@ class ConfirmShareViewModelTest {
             val repo = FakeRepository(games = listOf(wordle, other), entries = listOf(mine, theirs))
             val vm = viewModel(repo)
 
-            vm.pickGame(other)
+            vm.pickTarget(ShareTarget.Tracked(other))
 
-            assertEquals(listOf(mine), vm.state.first { it.game?.id == other.id }.entries)
+            assertEquals(listOf(mine), vm.state.first { it.target == ShareTarget.Tracked(other) }.entries)
         }
 
     @Test
@@ -183,7 +182,7 @@ class ConfirmShareViewModelTest {
             val vm = viewModel(repo, sharedText = wordleText(today))
             assertFalse(vm.saved.value)
 
-            vm.save(wordle, today).join()
+            vm.save(ShareTarget.Tracked(wordle), today).join()
 
             assertTrue(vm.saved.value)
             val saved = repo.entries.value.single()
@@ -197,9 +196,9 @@ class ConfirmShareViewModelTest {
         runTest(dispatcher) {
             val vm = viewModel(FakeRepository(games = listOf(wordle)))
             backgroundScope.launch { vm.state.collect {} }
-            vm.state.first { it.game != null }
+            vm.state.first { it.target != null }
 
-            vm.save(wordle, today).join()
+            vm.save(ShareTarget.Tracked(wordle), today).join()
             runCurrent()
 
             assertFalse(vm.state.value.clash)
@@ -208,11 +207,55 @@ class ConfirmShareViewModelTest {
     @Test
     fun `no game is chosen when the share matched none`() =
         runTest(dispatcher) {
-            val vm = viewModel(FakeRepository(games = listOf(wordle)), matchedGameId = null)
+            val vm = viewModel(FakeRepository(games = listOf(wordle)), matched = null)
 
-            val state = vm.state.first { it.games != null }
+            val state = vm.state.first { it.targets != null }
 
-            assertEquals(null, state.game)
+            assertEquals(null, state.target)
             assertEquals(null, state.day)
+        }
+
+    @Test
+    fun `a matched game that is not tracked is listed and chosen without being added`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(other))
+            val vm = viewModel(repo)
+
+            val state = vm.state.first { it.target != null }
+
+            val new = ShareTarget.New(CatalogGame.WORDLE)
+            assertEquals(new, state.target)
+            assertEquals(listOf(ShareTarget.Tracked(other), new), state.targets)
+            assertEquals(listOf(other), repo.games.value)
+        }
+
+    @Test
+    fun `saving to a matched game that is not tracked adds it`() =
+        runTest(dispatcher) {
+            val repo = FakeRepository(games = listOf(other))
+            val vm = viewModel(repo)
+
+            vm.save(ShareTarget.New(CatalogGame.WORDLE), today).join()
+
+            val added = repo.games.value.single { it.catalogGame == CatalogGame.WORDLE }
+            assertEquals(added.id, repo.entries.value.single().gameId)
+        }
+
+    @Test
+    fun `a matched game that is archived is listed with its entries and restored on save`() =
+        runTest(dispatcher) {
+            val archived = wordle.copy(archived = true)
+            val entry = EntryEntity(id = 1, gameId = wordle.id, puzzleDay = today)
+            val repo = FakeRepository(games = listOf(archived, other), entries = listOf(entry))
+            val vm = viewModel(repo)
+
+            val state = vm.state.first { it.target != null && it.entries.isNotEmpty() }
+            assertEquals(listOf(ShareTarget.Tracked(other), ShareTarget.Tracked(archived)), state.targets)
+            assertTrue(state.clash)
+            assertTrue(repo.games.value.single { it.id == wordle.id }.archived)
+
+            vm.save(ShareTarget.Tracked(archived), today).join()
+
+            assertFalse(repo.games.value.single { it.id == wordle.id }.archived)
         }
 }

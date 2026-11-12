@@ -25,13 +25,13 @@ class ConfirmShareActivity : ComponentActivity() {
             return
         }
 
-        val matched = intent?.getLongExtra(EXTRA_MATCHED_GAME_ID, NO_GAME) ?: NO_GAME
+        val matched = intent?.hasExtra(EXTRA_MATCHED_GAME) == true
 
         setContent {
             DailyTrackerTheme {
                 ConfirmShareDialog(
                     sharedText = text,
-                    matchedGameId = matched.takeIf { it != NO_GAME },
+                    matched = matched,
                     onDone = { finish() },
                 )
             }
@@ -41,9 +41,10 @@ class ConfirmShareActivity : ComponentActivity() {
     companion object {
         const val EXTRA_SHARED_TEXT = "shared_text"
 
-        /** The game the receiver matched. Absent when the text didn't match exactly one game. */
-        const val EXTRA_MATCHED_GAME_ID = "matched_game_id"
-
-        const val NO_GAME = -1L
+        /**
+         * The name of the catalog game whose parser matches the shared text. Absent when the text
+         * doesn't match exactly one parser.
+         */
+        const val EXTRA_MATCHED_GAME = "matched_game"
     }
 }
